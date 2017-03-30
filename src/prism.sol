@@ -14,8 +14,10 @@
    limitations under the License.
 */
 
+import 'erc20/erc20.sol';
+import 'ds-aver/aver.sol';
 
-contract DSPrism {
+contract DSPrism is DSAver {
     // top candidates in "lazy decreasing" order
     address[] elected;
     function distinctElected() returns (address[]);
@@ -61,7 +63,7 @@ contract DSPrism {
         }
         voter.slate = which;
         slate = _slates[which];
-        for(var i = 0; i < slate.guys.length; i++) {
+        for(i = 0; i < slate.guys.length; i++) {
             _votes[slate.guys[i]] += voter.weight;
         }
     }
