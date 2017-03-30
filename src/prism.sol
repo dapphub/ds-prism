@@ -20,33 +20,38 @@ contract DSPrism {
     address[] elected;
     function distinctElected() returns (address[]);
     function swap(uint i, uint j) {
-        assert( i < j );
+        assert( i < j && j < elected.length);
         var a = elected[i];
         var b = elected[j];
-        assert( a < b );
         elected[i] = b;
         elected[j] = a;
+        assert( a < b );
+        assert( elected[i] > elected[i+1] );
     }
-
     struct Slate {
         address[] guys; // Ordered list of candidates. Length is part of list encoding.
     }
     mapping(bytes32=>Slate) _slates;
     struct Voter {
         uint    weight;
-        bytes32 slate;
+        bytes32 slate; // pointer to slate for reusability
     }
 
     ERC20 _token;
     mapping(address=>Voter) _voters;
     mapping(address=>uint) _votes;
 
-    function addSlate(address[] guys) returns (bytes32) {
+    function etch(address[] guys) returns (bytes32) {
         assert( inOrder(guys) );
         var key = sha3(guys);
         _slates[key] = Slate({ guys: guys });
     }
-    function setSlate(bytes32 which) {
+    function vote(address[] guys) returns (bytes32) {
+        var id = etch(guys);
+        vote(id);
+        return id;
+    }
+    function vote(bytes32 which) {
         var voter = _voters[msg.sender];
         var slate = _slates[voter.slate];
         for(guy in slate.guys) {
@@ -58,11 +63,11 @@ contract DSPrism {
             _votes[guy] += voter.weight;
         }
     }
-    function deposit() {
+    function lock() {
         adjust votes
         ...
     }
-    function withdraw() {
+    function free() {
         adjust votes
         ...
     }
