@@ -18,7 +18,7 @@ import 'erc20/erc20.sol';
 import 'ds-aver/aver.sol';
 
 contract DSPrism is DSAver {
-    // top candidates in "lazy decreasing" order
+    // top candidates in "lazy decreasing" order by vote
     address[] elected;
 
     // asserts swapped values are in order, and the greater
@@ -54,8 +54,10 @@ contract DSPrism is DSAver {
     mapping(address=>uint) _votes;
 
     function isOrderedSet(address[] guys) internal returns (bool) {
-        // TODO aver distinct and in order
-        return true;
+        for( var i = 0; i < guys.length - 1; i++ ) {
+            // strict inequality ensures both ordering and uniqueness
+            aver(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
+        }
     }
 
     function etch(address[] guys) returns (bytes32) {
