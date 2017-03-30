@@ -19,13 +19,15 @@ contract DSPrism {
     // top candidates in "lazy decreasing" order
     address[] elected;
     function distinctElected() returns (address[]);
+    // asserts swapped values are in order, and the greater
+    // value is also greater than its direct neighbor
     function swap(uint i, uint j) {
         assert( i < j && j < elected.length);
         var a = elected[i];
         var b = elected[j];
+        assert( a < b );
         elected[i] = b;
         elected[j] = a;
-        assert( a < b );
         assert( elected[i] > elected[i+1] );
     }
     struct Slate {
@@ -47,28 +49,28 @@ contract DSPrism {
         _slates[key] = Slate({ guys: guys });
     }
     function vote(address[] guys) returns (bytes32) {
-        var id = etch(guys);
-        vote(id);
+        var slate = etch(guys);
+        vote(slate);
         return id;
     }
     function vote(bytes32 which) {
         var voter = _voters[msg.sender];
         var slate = _slates[voter.slate];
-        for(guy in slate.guys) {
-            _votes[guy] -= voter.weight;
+        for(var i = 0; i < slate.guys.length; i++) {
+            _votes[slate.guys[i]] -= voter.weight;
         }
         voter.slate = which;
         slate = _slates[which];
-        for(guy in slate.guys) {
-            _votes[guy] += voter.weight;
+        for(var i = 0; i < slate.guys.length; i++) {
+            _votes[slate.guys[i]] += voter.weight;
         }
     }
     function lock() {
-        adjust votes
-        ...
+        //adjust votes
+        //...
     }
     function free() {
-        adjust votes
-        ...
+        //adjust votes
+        //...
     }
 }
