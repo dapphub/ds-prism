@@ -24,13 +24,13 @@ contract DSPrism is DSAver {
     // asserts swapped values are in order, and the greater
     // value is also greater than its direct neighbor
     function swap(uint i, uint j) {
-        assert( i < j && j < elected.length);
+        aver( i < j && j < elected.length);
         var a = elected[i];
         var b = elected[j];
-        assert( a < b );
+        aver( _votes[a] < _votes[b] );
         elected[i] = b;
         elected[j] = a;
-        assert( elected[i] > elected[i+1] );
+        aver( _votes[elected[i]] > _votes[elected[i+1]] );
     }
     struct Slate {
         address[] guys; // Ordered list of candidates. Length is part of list encoding.
@@ -46,14 +46,14 @@ contract DSPrism is DSAver {
     mapping(address=>uint) _votes;
 
     function etch(address[] guys) returns (bytes32) {
-        assert( inOrder(guys) );
+        aver( inOrder(guys) );
         var key = sha3(guys);
         _slates[key] = Slate({ guys: guys });
     }
     function vote(address[] guys) returns (bytes32) {
         var slate = etch(guys);
         vote(slate);
-        return id;
+        return slate;
     }
     function vote(bytes32 which) {
         var voter = _voters[msg.sender];
