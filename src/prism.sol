@@ -20,18 +20,26 @@ import 'ds-aver/aver.sol';
 contract DSPrism is DSAver {
     // top candidates in "lazy decreasing" order
     address[] elected;
-    function distinctElected() returns (address[]);
+
     // asserts swapped values are in order, and the greater
     // value is also greater than its direct neighbor
     function swap(uint i, uint j) {
         aver( i < j && j < elected.length);
         var a = elected[i];
         var b = elected[j];
-        aver( _votes[a] < _votes[b] );
         elected[i] = b;
         elected[j] = a;
-        aver( _votes[elected[i]] > _votes[elected[i+1]] );
+        aver( _votes[a] < _votes[b] );
+        aver( _votes[elected[i+1]] < _votes[b] );
     }
+    // alternative to `swap` when `j` is not in the elected set at all
+    function drop(uint i, address b) {
+        aver( i < elected.length);
+        var a = elected[i];
+        elected[i] = b;
+        aver( _votes[a] < _votes[b] );
+    }
+
     struct Slate {
         address[] guys; // Ordered set of candidates. Length is part of list encoding.
     }
