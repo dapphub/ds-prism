@@ -1,5 +1,5 @@
 /*
-   Copyright 2017 Nexus Development, LLC
+   Copyright 2017 DappHub, LLC
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -72,12 +72,14 @@ contract DSPrism is DSAver {
             _votes[slate.guys[i]] += voter.weight;
         }
     }
-    function lock() {
-        //adjust votes
-        //...
+    function lock(uint128 amt) {
+        aver( _token.transferFrom(msg.sender, this, amt) );
+        _voters[msg.sender].weight += amt;
+        vote(_voters[msg.sender].slate);
     }
-    function free() {
-        //adjust votes
-        //...
+    function free(uint128 amt) {
+        _voters[msg.sender].weight -= amt;
+        vote(_voters[msg.sender].slate);
+        aver( _token.transferFrom(msg.sender, this, amt) );
     }
 }
