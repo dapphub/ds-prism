@@ -45,6 +45,11 @@ contract DSPrism is DSAver {
     mapping(address=>Voter) _voters;
     mapping(address=>uint) _votes;
 
+    function inOrder(address[] guys) internal returns (bool) {
+        // TODO aver in order
+        return true;
+    }
+
     function etch(address[] guys) returns (bytes32) {
         aver( inOrder(guys) );
         var key = sha3(guys);
