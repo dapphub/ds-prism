@@ -33,7 +33,7 @@ contract DSPrism is DSAver {
         aver( _votes[elected[i]] > _votes[elected[i+1]] );
     }
     struct Slate {
-        address[] guys; // Ordered list of candidates. Length is part of list encoding.
+        address[] guys; // Ordered set of candidates. Length is part of list encoding.
     }
     mapping(bytes32=>Slate) _slates;
     struct Voter {
@@ -45,13 +45,13 @@ contract DSPrism is DSAver {
     mapping(address=>Voter) _voters;
     mapping(address=>uint) _votes;
 
-    function inOrder(address[] guys) internal returns (bool) {
-        // TODO aver in order
+    function isOrderedSet(address[] guys) internal returns (bool) {
+        // TODO aver distinct and in order
         return true;
     }
 
     function etch(address[] guys) returns (bytes32) {
-        aver( inOrder(guys) );
+        aver( isOrderedSet(guys) );
         var key = sha3(guys);
         _slates[key] = Slate({ guys: guys });
     }
