@@ -15,29 +15,29 @@
 */
 
 import 'erc20/erc20.sol';
-import 'ds-aver/aver.sol';
+import 'ds-thing/thing.sol';
 
-contract DSPrism is DSAver {
+contract DSPrism is DSThing {
     // top candidates in "lazy decreasing" order by vote
     address[] elected;
 
     // asserts swapped values are in order, and the greater
     // value is also greater than its direct neighbor
     function swap(uint i, uint j) {
-        aver( i < j && j < elected.length);
+        assert( i < j && j < elected.length);
         var a = elected[i];
         var b = elected[j];
         elected[i] = b;
         elected[j] = a;
-        aver( _votes[a] < _votes[b] );
-        aver( _votes[elected[i+1]] < _votes[b] );
+        assert( _votes[a] < _votes[b] );
+        assert( _votes[elected[i+1]] < _votes[b] );
     }
     // alternative to `swap` when `j` is not in the elected set at all
     function drop(uint i, address b) {
-        aver( i < elected.length);
+        assert( i < elected.length);
         var a = elected[i];
         elected[i] = b;
-        aver( _votes[a] < _votes[b] );
+        assert( _votes[a] < _votes[b] );
     }
 
     struct Slate {
@@ -56,12 +56,12 @@ contract DSPrism is DSAver {
     function isOrderedSet(address[] guys) internal returns (bool) {
         for( var i = 0; i < guys.length - 1; i++ ) {
             // strict inequality ensures both ordering and uniqueness
-            aver(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
+            assert(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
         }
     }
 
     function etch(address[] guys) returns (bytes32) {
-        aver( isOrderedSet(guys) );
+        assert( isOrderedSet(guys) );
         var key = sha3(guys);
         _slates[key] = Slate({ guys: guys });
     }
@@ -83,13 +83,13 @@ contract DSPrism is DSAver {
         }
     }
     function lock(uint128 amt) {
-        aver( _token.transferFrom(msg.sender, this, amt) );
+        assert( _token.transferFrom(msg.sender, this, amt) );
         _voters[msg.sender].weight += amt;
         vote(_voters[msg.sender].slate);
     }
     function free(uint128 amt) {
         _voters[msg.sender].weight -= amt;
         vote(_voters[msg.sender].slate);
-        aver( _token.transferFrom(msg.sender, this, amt) );
+        assert( _token.transferFrom(msg.sender, this, amt) );
     }
 }
