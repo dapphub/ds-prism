@@ -83,13 +83,13 @@ contract DSPrism is DSThing {
         }
     }
     function lock(uint128 amt) {
-        assert( _token.transferFrom(msg.sender, this, amt) );
+        _token.pull(msg.sender, amt);
         _voters[msg.sender].weight += amt;
         vote(_voters[msg.sender].slate);
     }
     function free(uint128 amt) {
         _voters[msg.sender].weight -= amt;
         vote(_voters[msg.sender].slate);
-        assert( _token.transferFrom(msg.sender, this, amt) );
+        _token.push(msg.sender, amt);
     }
 }
