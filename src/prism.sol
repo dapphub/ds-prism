@@ -14,12 +14,27 @@
    limitations under the License.
 */
 
-import 'erc20/erc20.sol';
+import 'ds-token/token.sol';
 import 'ds-thing/thing.sol';
 
 contract DSPrism is DSThing {
+    struct Slate {
+        address[] guys; // Ordered set of candidates. Length is part of list encoding.
+    }
+    struct Voter {
+        uint    weight;
+        bytes32 slate; // pointer to slate for reusability
+    }
+
+
     // top candidates in "lazy decreasing" order by vote
     address[] elected;
+    DSToken _token;
+    mapping(address=>Voter) _voters;
+    mapping(address=>uint) _votes;
+    mapping(bytes32=>Slate) _slates;
+
+
 
     // asserts swapped values are in order, and the greater
     // value is also greater than its direct neighbor
@@ -40,18 +55,6 @@ contract DSPrism is DSThing {
         assert( _votes[a] < _votes[b] );
     }
 
-    struct Slate {
-        address[] guys; // Ordered set of candidates. Length is part of list encoding.
-    }
-    mapping(bytes32=>Slate) _slates;
-    struct Voter {
-        uint    weight;
-        bytes32 slate; // pointer to slate for reusability
-    }
-
-    ERC20 _token;
-    mapping(address=>Voter) _voters;
-    mapping(address=>uint) _votes;
 
     function isOrderedSet(address[] guys) internal returns (bool) {
         for( var i = 0; i < guys.length - 1; i++ ) {
