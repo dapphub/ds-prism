@@ -96,6 +96,8 @@ contract DSPrism is DSThing {
         requireOrderedSet(guys);
         var key = sha3(guys);
         _slates[key] = Slate({ guys: guys });
+
+        return key;
     }
 
 
@@ -109,6 +111,7 @@ contract DSPrism is DSThing {
     function vote(address[] guys) returns (bytes32) {
         var slate = etch(guys);
         vote(slate);
+
         return slate;
     }
 
