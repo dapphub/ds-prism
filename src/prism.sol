@@ -90,17 +90,6 @@ contract DSPrism is DSThing {
 
 
     /**
-    @dev Returns true if the array of addresses is a ordered set.
-    */
-    function isOrderedSet(address[] guys) internal returns (bool) {
-        for( var i = 0; i < guys.length - 1; i++ ) {
-            // strict inequality ensures both ordering and uniqueness
-            assert(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
-        }
-    }
-
-
-    /**
     @notice Save a ordered addresses set and return a unique identifier for it.
     */
     function etch(address[] guys) returns (bytes32) {
@@ -166,5 +155,14 @@ contract DSPrism is DSThing {
         _voters[msg.sender].weight -= amt;
         vote(_voters[msg.sender].slate);
         _token.push(msg.sender, amt);
+    }
+
+
+    // Returns true if the array of addresses is a ordered set.
+    function isOrderedSet(address[] guys) internal returns (bool) {
+        for( var i = 0; i < guys.length - 1; i++ ) {
+            // strict inequality ensures both ordering and uniqueness
+            assert(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
+        }
     }
 }
