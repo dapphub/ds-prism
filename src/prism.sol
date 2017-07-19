@@ -62,7 +62,7 @@ contract DSPrism is DSThing {
     @param j The index of the candidate in the `elected` list to move down.
     */
     function swap(uint i, uint j) {
-        assert( i < j && j < elected.length);
+        require(i < j && j < elected.length);
         var a = elected[i];
         var b = elected[j];
         elected[i] = b;
@@ -82,10 +82,10 @@ contract DSPrism is DSThing {
     @param b The address of the candidate to insert.
     */
     function drop(uint i, address b) {
-        assert( i < elected.length);
+        require(i < elected.length);
         var a = elected[i];
         elected[i] = b;
-        assert( _votes[a] < _votes[b] );
+        assert(_votes[a] < _votes[b]);
     }
 
 
@@ -93,7 +93,7 @@ contract DSPrism is DSThing {
     @notice Save a ordered addresses set and return a unique identifier for it.
     */
     function etch(address[] guys) returns (bytes32) {
-        assert( isOrderedSet(guys) );
+        requireOrderedSet(guys);
         var key = sha3(guys);
         _slates[key] = Slate({ guys: guys });
     }
@@ -158,13 +158,11 @@ contract DSPrism is DSThing {
     }
 
 
-    // Returns true if the array of addresses is a ordered set.
-    function isOrderedSet(address[] guys) internal returns (bool) {
+    // Throws unless the array of addresses is a ordered set.
+    function requireOrderedSet(address[] guys) internal {
         for( var i = 0; i < guys.length - 1; i++ ) {
             // strict inequality ensures both ordering and uniqueness
-            assert(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
+            require(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
         }
-
-        return true;
     }
 }
