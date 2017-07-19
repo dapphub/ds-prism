@@ -164,5 +164,7 @@ contract DSPrism is DSThing {
             // strict inequality ensures both ordering and uniqueness
             assert(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
         }
+
+        return true;
     }
 }
