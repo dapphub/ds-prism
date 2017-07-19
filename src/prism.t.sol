@@ -81,7 +81,7 @@ contract DSPrismTest is DSTest {
     address constant c7 = 0x7;
     address constant c8 = 0x8;
     address constant c9 = 0x9;
-    uint128 constant initialBalance = 100 ether;
+    uint128 constant initialBalance = 1000 ether;
 
     DSPrism prism;
     DSToken token;
@@ -114,7 +114,7 @@ contract DSPrismTest is DSTest {
         assert(false);
     }
 
-    function test_etch_id(address[] guys) returns (bytes32) {
+    function test_etch_id() {
         var candidates = new address[](3);
         candidates[0] = c1;
         candidates[1] = c2;
