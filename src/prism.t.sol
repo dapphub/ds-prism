@@ -1,13 +1,16 @@
 pragma solidity ^0.4.8;
 
 import "ds-test/test.sol";
+import "ds-token/token.sol";
+
+import "./prism.sol";
 
 
 contract PrismUser {
     DSToken token;
-    DSPrism prism
+    DSPrism prism;
 
-    function TokenUser(DSToken token_, DSPrism prism_) {
+    function PrismUser(DSToken token_, DSPrism prism_) {
         token = token_;
         prism = prism_;
     }
@@ -80,6 +83,7 @@ contract DSPrismTest is DSTest {
     address constant c9 = 0x9;
     uint128 constant initialBalance = 100 ether;
 
+    DSPrism prism;
     DSToken token;
 
     // u prefix: user
@@ -91,9 +95,11 @@ contract DSPrismTest is DSTest {
         token = new DSToken("TST");
         token.mint(initialBalance);
 
-        uLarge = new PrismUser(token);
-        uMedium = new PrismUser(token);
-        uSmall = new PrismUser(token);
+        prism = new DSPrism(token, electionSize);
+
+        uLarge = new PrismUser(token, prism);
+        uMedium = new PrismUser(token, prism);
+        uSmall = new PrismUser(token, prism);
 
         token.transfer(uLarge, 400 ether);
         token.transfer(uMedium, 350 ether);
@@ -109,26 +115,13 @@ contract DSPrismTest is DSTest {
     }
 
     function test_etch_id(address[] guys) returns (bytes32) {
-        var candidates = [c1, c2, c3];
+        var candidates = new address[](3);
+        candidates[0] = c1;
+        candidates[1] = c2;
+        candidates[2] = c3;
+
         var id = uSmall.doEtch(candidates);
-        assert(id != 0x0, "ID returned is not null.");
-        assert(id == uMedium.doEtch(candidates), "etch is not idempotent.");
+        assert(id != 0x0);
+        assertEq32(id, uMedium.doEtch(candidates));
     }
-
-    /*
-    function test_swap(uint i, uint j) {
-    }
-
-    function test_drop(uint i, address b) {
-    }
-
-    function test_vote(address[] guys) returns (bytes32) {
-    }
-
-    function test_lock(uint128 amt) {
-    }
-
-    function test_free(uint128 amt) {
-    }
-    */
 }

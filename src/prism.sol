@@ -39,7 +39,7 @@ contract DSPrism is DSThing {
     @notice Create a DSPrism instance.
 
     @param electionSize The number of candidates to elect.
-    @param _t The address of a DSToken instance.
+    @param token The address of a DSToken instance.
     */
     function DSPrism(DSToken token, uint electionSize) DSThing()
     {
