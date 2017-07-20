@@ -58,8 +58,8 @@ contract DSPrism is DSThing {
     candidates, `elected`, has been ordered in descending order by weighted
     votes. The winning candidates will end up at the front of the list.
 
-    @param i The index of the candidate in the `elected` list to move up.
-    @param j The index of the candidate in the `elected` list to move down.
+    @param i The index of the candidate in the `elected` list to move down.
+    @param j The index of the candidate in the `elected` list to move up.
     */
     function swap(uint i, uint j) {
         require(i < j && j < elected.length);
@@ -76,7 +76,6 @@ contract DSPrism is DSThing {
     @notice Replace candidate at index `i` in the set of elected candidates with
     the candidate at address `b`. This transaction will fail if candidate `i`
     has more votes than the candidate at the given address.
-
 
     @param i The index of the candidate to replace.
     @param b The address of the candidate to insert.
