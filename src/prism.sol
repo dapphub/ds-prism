@@ -89,7 +89,7 @@ contract DSPrism is DSThing {
 
 
     /**
-    @notice Save a ordered addresses set and return a unique identifier for it.
+    @notice Save an ordered addresses set and return a unique identifier for it.
     */
     function etch(address[] guys) returns (bytes32) {
         requireOrderedSet(guys);
