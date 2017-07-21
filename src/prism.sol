@@ -141,7 +141,7 @@ contract DSPrism is DSThing {
     @param amt Number of tokens (in the token's smallest denomination) to lock.
     */
     function lock(uint128 amt) {
-        _token.pull(msg.sender, amt);
+        _token.transferFrom(msg.sender, this, amt);
         _voters[msg.sender].weight += amt;
         vote(_voters[msg.sender].slate);
     }
@@ -156,7 +156,7 @@ contract DSPrism is DSThing {
     function free(uint128 amt) {
         _voters[msg.sender].weight -= amt;
         vote(_voters[msg.sender].slate);
-        _token.push(msg.sender, amt);
+        _token.transfer(msg.sender, amt);
     }
 
 
