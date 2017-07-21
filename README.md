@@ -12,16 +12,35 @@ first withdraw support from the candidate being replaced. Without this, moving
 approval to a new candidate could result in a less-approved candidate moving
 momentarily into the set of elected candidates.
 
-It is important to note that election in `ds-prism` is a continuous process.
-There is no discrete "election" event, and the "polls" never close. Candidates
-simply move into and out of the "elected" set.
+In addition, `ds-prism`...
 
-It's also important to note that a voter's weight is proportional to the
-quantity they have locked of a `DSToken` instance's tokens. The `DSToken`
-instance must be specified at the time of `DSPrism` deployment and cannot be
-changed afterward.
+- ...is a continuous process. There is no discrete "election" event, and the
+  "polls" never close. Candidates simply move into and out of the "elected" set.
+- ...weights votes according to the quantity of a voting token they've chosen to
+  lock up in the `DSPrism` contract.
 
-This system is used in Maker DAO to elect oracles.
+It's important to note that the voting token used in a `DSPrism` deployment
+must be specified at the time of deployment and cannot be changed afterward.
+
+It's also important to note that `ds-prism` generally takes a "batteries not
+included" approach. Sorting is expected to mostly be done off-chain, and
+candidates are expected to watch this contract and call the `swap` and `drop`
+functions as they gain votes in order to keep the elected set up to date. If a
+candidate is voted in but nobody bothers to call `swap` or `drop` to update the
+elected set, then the elected set will not change. As `ds-prism` was written
+specifically for electing oracles in Maker DAO, this may be considered a feature
+rather than a shortcoming: candidates that are too inattentive to realize their
+own election don't belong in the elected set anyway. This feature may or may not
+also be helpful in your own projects.
+
+Also in the spirit of "batteries not included," we recommend that you ignore
+elected candidates with fewer than half the votes of the most popular candidate.
+This prevents unpopular, potentially malicious candidates from entering the
+elected set in the event there are too few qualified candidates to fill it.
+Doing this check on-chain does not make sense for hybrid systems such as Maker
+DAO's oracle election, so it is not implemented as part of the `DSPrism`
+contract.
+
 
 **Example:**
 
