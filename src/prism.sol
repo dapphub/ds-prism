@@ -116,21 +116,26 @@ contract DSPrism is DSThing {
 
 
     /**
+    @notice Returns the number of tokens allocated to voting for `guy`.
+
+    @param guy The address of the candidate whose votes we want to lookup.
+    */
+    function votes(address guy) constant returns (uint) {
+        return _votes[guy];
+    }
+
+
+    /**
     @notice Approve the set of candidates with ID `which`.
 
     @param which An identifier returned by "etch" or "vote."
     */
     function vote(bytes32 which) {
         var voter = _voters[msg.sender];
-        var slate = _slates[voter.slate];
-        for(var i = 0; i < slate.guys.length; i++) {
-            _votes[slate.guys[i]] -= voter.weight;
-        }
+        subWeight(voter.weight, _slates[voter.slate]);
+
         voter.slate = which;
-        slate = _slates[which];
-        for(i = 0; i < slate.guys.length; i++) {
-            _votes[slate.guys[i]] += voter.weight;
-        }
+        addWeight(voter.weight, _slates[voter.slate]);
     }
 
 
@@ -141,9 +146,12 @@ contract DSPrism is DSThing {
     @param amt Number of tokens (in the token's smallest denomination) to lock.
     */
     function lock(uint128 amt) {
-        _token.transferFrom(msg.sender, this, amt);
+        var voter = _voters[msg.sender];
+        addWeight(amt, _slates[voter.slate]);
+
         _voters[msg.sender].weight += amt;
-        vote(_voters[msg.sender].slate);
+
+        _token.transferFrom(msg.sender, this, amt);
     }
 
 
@@ -154,8 +162,11 @@ contract DSPrism is DSThing {
     @param amt Number of tokens (in the token's smallest denomination) to free.
     */
     function free(uint128 amt) {
-        _voters[msg.sender].weight -= amt;
-        vote(_voters[msg.sender].slate);
+        var voter = _voters[msg.sender];
+        subWeight(amt, _slates[voter.slate]);
+
+        voter.weight -= amt;
+
         _token.transfer(msg.sender, amt);
     }
 
@@ -165,6 +176,20 @@ contract DSPrism is DSThing {
         for( var i = 0; i < guys.length - 1; i++ ) {
             // strict inequality ensures both ordering and uniqueness
             require(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
+        }
+    }
+
+    // Remove weight from slate.
+    function subWeight(uint weight, Slate slate) internal {
+        for(var i = 0; i < slate.guys.length; i++) {
+            _votes[slate.guys[i]] -= weight;
+        }
+    }
+
+    // Add weight to slate.
+    function addWeight(uint weight, Slate slate) internal {
+        for(var i = 0; i < slate.guys.length; i++) {
+            _votes[slate.guys[i]] += weight;
         }
     }
 }

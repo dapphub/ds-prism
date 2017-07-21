@@ -67,7 +67,7 @@ contract PrismUser {
         prism.lock(amt);
     }
 
-    function test_free(uint128 amt) {
+    function doFree(uint128 amt) {
         prism.free(amt);
     }
 }
@@ -156,6 +156,26 @@ contract DSPrismTest is DSTest {
                lockedAmt);
     }
 
+    function test_changing_weight_after_voting() {
+        var uLargeLockedAmt = uLargeInitialBalance / 2;
+        uLarge.doApprove(prism, uLargeLockedAmt);
+        uLarge.doLock(uLargeLockedAmt);
+
+        var uLargeSlate = new address[](1);
+        uLargeSlate[0] = c1;
+        uLarge.doVote(uLargeSlate);
+
+        assert(prism.votes(c1) == uLargeLockedAmt);
+
+        // Changing weight should update the weight of our candidate.
+        uLarge.doFree(uLargeLockedAmt);
+        uLargeLockedAmt = uLargeInitialBalance / 4;
+        uLarge.doApprove(prism, uLargeLockedAmt);
+        uLarge.doLock(uLargeLockedAmt);
+
+        assert(prism.votes(c1) == uLargeLockedAmt);
+    }
+
     function test_voting_and_reordering() {
         assert(token.balanceOf(uLarge) == uLargeInitialBalance);
 
@@ -174,20 +194,6 @@ contract DSPrismTest is DSTest {
         prism.swap(0, 2);
     }
 
-    function testFail_voting_and_reordering_without_weight() {
-        assert(token.balanceOf(uLarge) == uLargeInitialBalance);
-
-        uMedium_votes();
-
-        // Vote without weight.
-        var uLargeSlate = new address[](1);
-        uLargeSlate[0] = c3;
-        uLarge.doVote(uLargeSlate);
-
-        // Attempt to update the elected set.
-        prism.swap(0, 2);
-    }
-
     function testFail_drop_past_end_of_elected() {
         assert(token.balanceOf(uLarge) == uLargeInitialBalance);
 
@@ -203,6 +209,20 @@ contract DSPrismTest is DSTest {
 
         // Update the elected set to reflect the new order.
         prism.drop(3, c4);
+    }
+
+    function testFail_voting_and_reordering_without_weight() {
+        assert(token.balanceOf(uLarge) == uLargeInitialBalance);
+
+        uMedium_votes();
+
+        // Vote without weight.
+        var uLargeSlate = new address[](1);
+        uLargeSlate[0] = c3;
+        uLarge.doVote(uLargeSlate);
+
+        // Attempt to update the elected set.
+        prism.swap(0, 2);
     }
 
     function test_voting_by_slate_id() {
