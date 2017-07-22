@@ -29,6 +29,7 @@ contract DSPrism is DSThing {
 
     // top candidates in "lazy decreasing" order by vote
     address[] elected;
+
     DSToken _token;
     mapping(address=>Voter) _voters;
     mapping(address=>uint) _votes;
