@@ -29,12 +29,11 @@ contract DSPrism is DSThing {
 
     // top candidates in "lazy decreasing" order by vote
     address[] elected;
+
     DSToken _token;
     mapping(address=>Voter) _voters;
     mapping(address=>uint) _votes;
     mapping(bytes32=>Slate) _slates;
-
-
 
     // asserts swapped values are in order, and the greater
     // value is also greater than its direct neighbor
@@ -86,13 +85,13 @@ contract DSPrism is DSThing {
         }
     }
     function lock(uint128 amt) {
-        _token.pull(msg.sender, amt);
+        _token.transferFrom(msg.sender, this, amt);
         _voters[msg.sender].weight += amt;
         vote(_voters[msg.sender].slate);
     }
     function free(uint128 amt) {
         _voters[msg.sender].weight -= amt;
         vote(_voters[msg.sender].slate);
-        _token.push(msg.sender, amt);
+        _token.transfer(msg.sender, amt);
     }
 }
