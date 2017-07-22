@@ -169,6 +169,8 @@ contract DSPrismTest is DSTest {
 
         // Changing weight should update the weight of our candidate.
         uLarge.doFree(uLargeLockedAmt);
+        assert(prism.votes(c1) == 0);
+
         uLargeLockedAmt = uLargeInitialBalance / 4;
         uLarge.doApprove(prism, uLargeLockedAmt);
         uLarge.doLock(uLargeLockedAmt);
