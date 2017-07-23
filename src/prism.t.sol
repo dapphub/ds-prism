@@ -136,6 +136,18 @@ contract DSPrismTest is DSTest {
         assertEq32(id, uMedium.doEtch(candidates));
     }
 
+    function test_size_zero_slate() {
+        var candidates = new address[](0);
+        var id = uSmall.doEtch(candidates);
+        uSmall.doVote(id);
+    }
+    function test_size_one_slate() {
+        var candidates = new address[](1);
+        candidates[0] = c1;
+        var id = uSmall.doEtch(candidates);
+        uSmall.doVote(id);
+    }
+
     function testFail_etch_requires_ordered_sets() {
         var candidates = new address[](3);
         candidates[0] = c2;
