@@ -174,6 +174,9 @@ contract DSPrism is DSThing {
 
     // Throws unless the array of addresses is a ordered set.
     function requireOrderedSet(address[] guys) internal {
+        if( guys.length == 0 || guys.length == 1 ) {
+            return;
+        }
         for( var i = 0; i < guys.length - 1; i++ ) {
             // strict inequality ensures both ordering and uniqueness
             require(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
