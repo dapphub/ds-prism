@@ -30,7 +30,7 @@ contract DSPrism is DSThing {
     // top candidates in "lazy decreasing" order by vote
     address[] public elected;
 
-    uint _maxVotes;
+    uint public maxVotes;
     DSToken _token;
     mapping(address=>Voter) _voters;
     mapping(address=>uint) _votes;
@@ -51,18 +51,26 @@ contract DSPrism is DSThing {
 
 
     /**
+    @notice Updates the internal `maxVotes` property with the number of votes
+    the specified candidate has if the candidate has more votes than the
+    current value.
+    */
+    function updateMaxVotes(address guy) {
+        if (maxVotes < _votes[guy]) {
+            maxVotes = _votes[guy];
+        }
+    }
+
+    /**
     @notice Walks the list of candidates under consideration for election (i.e.,
     those that have been  `swap`ped or `drop`ped into the `elected` set) and
-    finds the maximum vote value. This may expand or contract the set returned
-    by `elected`.
+    finds the maximum vote value, updating the internal `maxVotes` property.
     */
-    function maxVotes() returns (uint) {
+    function updateMaxVotes() {
+        maxVotes = 0;
         for ( var i = 0 ; i < elected.length ; i++ ) {
-            if (_maxVotes < _votes[elected[i]]) {
-                _maxVotes = _votes[elected[i]];
-            }
+            updateMaxVotes(elected[i]);
         }
-        return _maxVotes;
     }
 
 
@@ -89,12 +97,12 @@ contract DSPrism is DSThing {
         var b = elected[j];
         elected[i] = b;
         elected[j] = a;
-        assert( (_votes[a] >= _maxVotes / 2 && _votes[a] < _votes[b]) ||
-                (a == 0x0 && _votes[b] >= _maxVotes / 2) );
+        assert( (_votes[a] >= maxVotes / 2 && _votes[a] < _votes[b]) ||
+                (a == 0x0 && _votes[b] >= maxVotes / 2) );
         assert( _votes[elected[i+1]] < _votes[b] || elected[i+1] == 0x0 );
 
-        if (_votes[b] > _maxVotes) {
-            _maxVotes = _votes[b];
+        if (_votes[b] > maxVotes) {
+            maxVotes = _votes[b];
         }
     }
 
@@ -113,11 +121,11 @@ contract DSPrism is DSThing {
         require(i < elected.length);
         var a = elected[i];
         elected[i] = b;
-        assert( (_votes[a] < _votes[b] && _votes[b] >= _maxVotes / 2) ||
-                (b == 0x0 && _votes[a] < _maxVotes / 2));
+        assert( (_votes[a] < _votes[b] && _votes[b] >= maxVotes / 2) ||
+                (b == 0x0 && _votes[a] < maxVotes / 2));
 
-        if (_votes[b] > _maxVotes) {
-            _maxVotes = _votes[b];
+        if (_votes[b] > maxVotes) {
+            maxVotes = _votes[b];
         }
     }
 
@@ -136,7 +144,7 @@ contract DSPrism is DSThing {
     */
     function isElected(address guy) returns (bool) {
         // "Half votes" rule
-        if (_votes[guy] < _maxVotes / 2) {
+        if (_votes[guy] < maxVotes / 2) {
             return false;
         }
 
