@@ -30,7 +30,7 @@ contract DSPrism is DSThing {
     // top candidates in "lazy decreasing" order by vote
     address[] _elected;
 
-    uint maxVotes;
+    uint _maxVotes;
     DSToken _token;
     mapping(address=>Voter) _voters;
     mapping(address=>uint) _votes;
@@ -47,6 +47,22 @@ contract DSPrism is DSThing {
     {
         _elected.length = electionSize;
         _token = token;
+    }
+
+
+    /**
+    @notice Walks the list of candidates under consideration for election (i.e.,
+    those that have been  `swap`ped or `drop`ped into the `_elected` set) and
+    finds the maximum vote value. This may expand or contract the set returned
+    by `elected`.
+    */
+    function maxVotes() returns (uint) {
+        for ( var i = 0 ; i < _elected.length ; i++ ) {
+            if (_maxVotes < _votes[_elected[i]]) {
+                _maxVotes = _votes[_elected[i]];
+            }
+        }
+        return _maxVotes;
     }
 
 
@@ -72,8 +88,8 @@ contract DSPrism is DSThing {
         assert( _votes[a] < _votes[b] );
         assert( _votes[_elected[i+1]] < _votes[b] );
 
-        if (_votes[b] > maxVotes) {
-            maxVotes = _votes[b];
+        if (_votes[b] > _maxVotes) {
+            _maxVotes = _votes[b];
         }
     }
 
@@ -92,8 +108,8 @@ contract DSPrism is DSThing {
         _elected[i] = b;
         assert(_votes[a] < _votes[b]);
 
-        if (_votes[b] > maxVotes) {
-            maxVotes = _votes[b];
+        if (_votes[b] > _maxVotes) {
+            _maxVotes = _votes[b];
         }
     }
 
@@ -107,7 +123,7 @@ contract DSPrism is DSThing {
         for( var i = 0; i < _elected.length - 1; i++ ) {
 
             // "Half votes" rule
-            if (_votes[_elected[i]] >= maxVotes / 2) {
+            if (_votes[_elected[i]] >= _maxVotes / 2) {
                 elect.length += 1;
                 elect[elect.length-1] = _elected[i];
             }
@@ -121,7 +137,7 @@ contract DSPrism is DSThing {
     */
     function isElected(address guy) returns (bool) {
         // "Half votes" rule
-        if (_votes[guy] < maxVotes / 2) {
+        if (_votes[guy] < _maxVotes / 2) {
             return false;
         }
 
