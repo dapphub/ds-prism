@@ -28,7 +28,7 @@ contract DSPrism is DSThing {
     }
 
     // top candidates in "lazy decreasing" order by vote
-    address[] _elected;
+    address[] public elected;
 
     uint _maxVotes;
     DSToken _token;
@@ -45,21 +45,21 @@ contract DSPrism is DSThing {
     */
     function DSPrism(DSToken token, uint electionSize) DSThing()
     {
-        _elected.length = electionSize;
+        elected.length = electionSize;
         _token = token;
     }
 
 
     /**
     @notice Walks the list of candidates under consideration for election (i.e.,
-    those that have been  `swap`ped or `drop`ped into the `_elected` set) and
+    those that have been  `swap`ped or `drop`ped into the `elected` set) and
     finds the maximum vote value. This may expand or contract the set returned
     by `elected`.
     */
     function maxVotes() returns (uint) {
-        for ( var i = 0 ; i < _elected.length ; i++ ) {
-            if (_maxVotes < _votes[_elected[i]]) {
-                _maxVotes = _votes[_elected[i]];
+        for ( var i = 0 ; i < elected.length ; i++ ) {
+            if (_maxVotes < _votes[elected[i]]) {
+                _maxVotes = _votes[elected[i]];
             }
         }
         return _maxVotes;
@@ -69,8 +69,12 @@ contract DSPrism is DSThing {
     /**
     @notice Swap candidates `i` and `j` in the vote-ordered list. This
     transaction will fail if `i` is greater than `j`, if candidate `i` has a
-    higher score than candidate `j`, or if the candidate one slot below
-    the slot candidate `j` is moving to has more votes than candidate `j`.
+    higher score than candidate `j`, if the candidate one slot below the slot
+    candidate `j` is moving to has more votes than candidate `j`, or if
+    candidate `j` has fewer than half the votes of the most popular candidate.
+    This transaction will always succeed if candidate `j` has at least half the
+    votes of the most popular candidate and if candidate `i` either also has
+    less than half the votes of the most popular candidate or is `0x0`.
 
     @dev This function is meant to be called repeatedly until the list of
     candidates, `elected`, has been ordered in descending order by weighted
@@ -80,13 +84,14 @@ contract DSPrism is DSThing {
     @param j The index of the candidate in the `elected` list to move up.
     */
     function swap(uint i, uint j) {
-        require(i < j && j < _elected.length);
-        var a = _elected[i];
-        var b = _elected[j];
-        _elected[i] = b;
-        _elected[j] = a;
-        assert( _votes[a] < _votes[b] );
-        assert( _votes[_elected[i+1]] < _votes[b] );
+        require(i < j && j < elected.length);
+        var a = elected[i];
+        var b = elected[j];
+        elected[i] = b;
+        elected[j] = a;
+        assert( (_votes[a] >= _maxVotes / 2 && _votes[a] < _votes[b]) ||
+                (a == 0x0 && _votes[b] >= _maxVotes / 2) );
+        assert( _votes[elected[i+1]] < _votes[b] || elected[i+1] == 0x0 );
 
         if (_votes[b] > _maxVotes) {
             _maxVotes = _votes[b];
@@ -97,16 +102,19 @@ contract DSPrism is DSThing {
     /**
     @notice Replace candidate at index `i` in the set of elected candidates with
     the candidate at address `b`. This transaction will fail if candidate `i`
-    has more votes than the candidate at the given address.
+    has more votes than the candidate at the given address. Address `b` may be
+    `0x0` if candidate at index `i` has less than half the votes of the most
+    popular candidate.
 
     @param i The index of the candidate to replace.
     @param b The address of the candidate to insert.
     */
     function drop(uint i, address b) {
-        require(i < _elected.length);
-        var a = _elected[i];
-        _elected[i] = b;
-        assert(_votes[a] < _votes[b]);
+        require(i < elected.length);
+        var a = elected[i];
+        elected[i] = b;
+        assert( (_votes[a] < _votes[b] && _votes[b] >= _maxVotes / 2) ||
+                (b == 0x0 && _votes[a] < _maxVotes / 2));
 
         if (_votes[b] > _maxVotes) {
             _maxVotes = _votes[b];
@@ -115,20 +123,11 @@ contract DSPrism is DSThing {
 
 
     /**
-    @notice Returns the set of elected candidates.
+    @notice Replace candidate at index `i` with `0x0` if they have less than
+    half the votes of the most popular candidate.
     */
-    function elected() returns (address[]) {
-        address[] elect;
-
-        for( var i = 0; i < _elected.length - 1; i++ ) {
-
-            // "Half votes" rule
-            if (_votes[_elected[i]] >= _maxVotes / 2) {
-                elect.length += 1;
-                elect[elect.length-1] = _elected[i];
-            }
-        }
-        return elect;
+    function drop(uint i) {
+        drop(i, 0x0);
     }
 
 
@@ -141,8 +140,8 @@ contract DSPrism is DSThing {
             return false;
         }
 
-        for( var i = 0; i < _elected.length - 1; i++ ) {
-            if (guy == _elected[i]) {
+        for( var i = 0; i < elected.length - 1; i++ ) {
+            if (guy == elected[i]) {
                 return true;
             }
         }
