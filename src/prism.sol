@@ -28,8 +28,9 @@ contract DSPrism is DSThing {
     }
 
     // top candidates in "lazy decreasing" order by vote
-    address[] elected;
+    address[] _elected;
 
+    uint maxVotes;
     DSToken _token;
     mapping(address=>Voter) _voters;
     mapping(address=>uint) _votes;
@@ -44,7 +45,7 @@ contract DSPrism is DSThing {
     */
     function DSPrism(DSToken token, uint electionSize) DSThing()
     {
-        elected.length = electionSize;
+        _elected.length = electionSize;
         _token = token;
     }
 
@@ -63,13 +64,17 @@ contract DSPrism is DSThing {
     @param j The index of the candidate in the `elected` list to move up.
     */
     function swap(uint i, uint j) {
-        require(i < j && j < elected.length);
-        var a = elected[i];
-        var b = elected[j];
-        elected[i] = b;
-        elected[j] = a;
+        require(i < j && j < _elected.length);
+        var a = _elected[i];
+        var b = _elected[j];
+        _elected[i] = b;
+        _elected[j] = a;
         assert( _votes[a] < _votes[b] );
-        assert( _votes[elected[i+1]] < _votes[b] );
+        assert( _votes[_elected[i+1]] < _votes[b] );
+
+        if (_votes[b] > maxVotes) {
+            maxVotes = _votes[b];
+        }
     }
 
 
@@ -82,10 +87,50 @@ contract DSPrism is DSThing {
     @param b The address of the candidate to insert.
     */
     function drop(uint i, address b) {
-        require(i < elected.length);
-        var a = elected[i];
-        elected[i] = b;
+        require(i < _elected.length);
+        var a = _elected[i];
+        _elected[i] = b;
         assert(_votes[a] < _votes[b]);
+
+        if (_votes[b] > maxVotes) {
+            maxVotes = _votes[b];
+        }
+    }
+
+
+    /**
+    @notice Returns the set of elected candidates.
+    */
+    function elected() returns (address[]) {
+        address[] elect;
+
+        for( var i = 0; i < _elected.length - 1; i++ ) {
+
+            // "Half votes" rule
+            if (_votes[_elected[i]] >= maxVotes / 2) {
+                elect.length += 1;
+                elect[elect.length-1] = _elected[i];
+            }
+        }
+        return elect;
+    }
+
+
+    /**
+    @notice Checks membership of `guy` in elected set.
+    */
+    function isElected(address guy) returns (bool) {
+        // "Half votes" rule
+        if (_votes[guy] < maxVotes / 2) {
+            return false;
+        }
+
+        for( var i = 0; i < _elected.length - 1; i++ ) {
+            if (guy == _elected[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
