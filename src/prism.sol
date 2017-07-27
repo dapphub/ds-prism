@@ -28,6 +28,8 @@ contract DSPrism is DSThing {
     }
 
     // top candidates in "lazy decreasing" order by vote
+    bool[256**24] public isFinalist; // for address uniqueness checking
+
     address[] public elected;
 
     uint public maxVotes;
@@ -121,6 +123,10 @@ contract DSPrism is DSThing {
         require(i < elected.length);
         var a = elected[i];
         elected[i] = b;
+        require(!isFinalist[uint(b)]);
+        isFinalist[uint(b)] = true;
+        isFinalist[uint(a)] = false;
+
         assert( (_votes[a] < _votes[b] && _votes[b] >= maxVotes / 2) ||
                 (b == 0x0 && _votes[a] < maxVotes / 2));
 
