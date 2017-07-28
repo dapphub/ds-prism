@@ -35,7 +35,7 @@ contract DSPrism is DSThing {
     uint public electedLength;
     bytes32 public electedID;
     address[] public elected;
-    uint[] public electedVotes;
+    uint[] _electedVotes;
     bool[256**24] _isElected; // for cheap membership checks
 
     DSToken _token;
@@ -54,7 +54,7 @@ contract DSPrism is DSThing {
     {
         electedLength = electionSize;
         elected.length = electionSize;
-        electedVotes.length = electionSize;
+        _electedVotes.length = electionSize;
         finalists.length = electionSize;
         _token = token;
     }
@@ -186,12 +186,12 @@ contract DSPrism is DSThing {
                     _votes[finalists[i+1]] < requiredVotes);
 
             if (_votes[finalists[i]] >= requiredVotes) {
-                electedVotes[i] = _votes[finalists[i]];
+                _electedVotes[i] = _votes[finalists[i]];
                 elected[i] = finalists[i];
                 _isElected[uint(elected[i])] = true;
             } else {
                 elected[i] = 0x0;
-                electedVotes[i] = 0;
+                _electedVotes[i] = 0;
             }
         }
         electedID = sha3(elected);
