@@ -16,9 +16,8 @@ In addition, `ds-prism`...
 - ...weights votes according to the quantity of a voting token they've chosen to
   lock up in the `DSPrism` contract.
 - ...requires each elected candidate to have at least half the votes of the most
-  popular candidate. (This prevents unqualified candidates from being elected
-  in the event there are not enough qualified candidates to fill the elected
-  set.)
+  popular candidate. This prevents unqualified candidates from being elected in
+  the event there are not enough qualified candidates to fill the elected set.
 
 It's important to note that the voting token used in a `DSPrism` deployment
 must be specified at the time of deployment and cannot be changed afterward.
