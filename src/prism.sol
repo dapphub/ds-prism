@@ -172,20 +172,16 @@ contract DSPrism is DSThing {
     must be sorted or the transaction will fail.
     */
     function snap() {
-        electedVotes[0] = _votes[finalists[0]];
-        elected[0] = finalists[0];
-        _isElected[uint(finalists[0])] = true;
-
-        uint maxVotes = electedVotes[0];
+        uint maxVotes = _votes[finalists[0]];
         uint requiredVotes = maxVotes / 2;
 
-        for( var i = 1; i <= finalists.length - 1; i++ ) {
+        for( var i = 0; i < finalists.length - 1; i++ ) {
+            _isElected[uint(elected[i])] = false;
+
             // Ensure the finalists are at least ordered enough that the elected
             // set is ordered.
-            require(_votes[finalists[i]] < _votes[finalists[i-1]] ||
-                    _votes[finalists[i]] < requiredVotes);
-
-            _isElected[uint(elected[i])] = false;
+            require(_votes[finalists[i+1]] < _votes[finalists[i]] ||
+                    _votes[finalists[i+1]] < requiredVotes);
 
             if (_votes[finalists[i]] >= requiredVotes) {
                 electedVotes[i] = _votes[finalists[i]];
