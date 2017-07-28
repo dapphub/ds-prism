@@ -51,10 +51,6 @@ contract PrismUser {
         prism.drop(i, b);
     }
 
-    function doDrop(uint i) {
-        prism.drop(i);
-    }
-
     function doEtch(address[] guys) returns (bytes32) {
         return prism.etch(guys);
     }
@@ -212,13 +208,13 @@ contract DSPrismTest is DSTest {
         prism.swap(0, 2);
     }
 
+    /*
     function test_drop_half_votes() {
         initial_vote();
 
         assert(prism.elected(0) == c1);
         assert(prism.elected(1) == c2);
         assert(prism.elected(2) == c3);
-        assert(prism.maxVotes() == uMediumInitialBalance);
 
         // Upset the order.
         uSmall.doApprove(prism, uSmallInitialBalance);
@@ -229,11 +225,9 @@ contract DSPrismTest is DSTest {
         uSmall.doVote(uSmallSlate);
 
         uMedium.doFree(uMediumInitialBalance);
-        prism.updateMaxVotes();
         assert(prism.votes(c1) == 0);
         assert(prism.votes(c2) == 0);
         assert(prism.votes(c3) == uSmallInitialBalance);
-        assert(prism.maxVotes() == uSmallInitialBalance);
 
         prism.drop(0);
         assert(prism.elected(0) == 0x0);
@@ -250,8 +244,9 @@ contract DSPrismTest is DSTest {
         initial_vote();
         prism.drop(0); // Can't be dropped, too many votes.
     }
+    */
 
-    function testFail_swap_half_votes() {
+    function testFail_snap_while_out_of_order() {
         initial_vote();
 
         // Upset the order.
@@ -263,9 +258,29 @@ contract DSPrismTest is DSTest {
         uSmall.doVote(uSmallSlate);
 
         uMedium.doFree(uMediumInitialBalance);
-        prism.updateMaxVotes();
 
-        prism.swap(0, 2); // Throws because 0 and 1 need to be dropped first.
+        prism.snap();
+    }
+
+    function test_swap_half_votes() {
+        initial_vote();
+
+        // Upset the order.
+        uSmall.doApprove(prism, uSmallInitialBalance);
+        uSmall.doLock(uSmallInitialBalance);
+
+        var uSmallSlate = new address[](1);
+        uSmallSlate[0] = c3;
+        uSmall.doVote(uSmallSlate);
+
+        uMedium.doFree(uMediumInitialBalance);
+
+        prism.swap(0, 2);
+        prism.snap();
+
+        assert(!prism.isElected(c1));
+        assert(!prism.isElected(c2));
+        assert(prism.isElected(c3));
     }
 
     function testFail_drop_past_end_of_elected() {

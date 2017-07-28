@@ -28,11 +28,15 @@ contract DSPrism is DSThing {
     }
 
     // top candidates in "lazy decreasing" order by vote
+    address[] public finalists;
     bool[256**24] public isFinalist; // for address uniqueness checking
 
+    // "elected" properties
+    bytes32 public electedID;
     address[] public elected;
+    uint[] public electedVotes;
+    bool[256**24] public _isElected; // for cheap membership checks
 
-    uint public maxVotes;
     DSToken _token;
     mapping(address=>Voter) _voters;
     mapping(address=>uint) _votes;
@@ -48,31 +52,17 @@ contract DSPrism is DSThing {
     function DSPrism(DSToken token, uint electionSize) DSThing()
     {
         elected.length = electionSize;
+        electedVotes.length = electionSize;
+        finalists.length = electionSize;
         _token = token;
     }
 
 
     /**
-    @notice Updates the internal `maxVotes` property with the number of votes
-    the specified candidate has if the candidate has more votes than the
-    current value.
+    @notice Takes an address and returns true if the address has been elected.
     */
-    function updateMaxVotes(address guy) {
-        if (maxVotes < _votes[guy]) {
-            maxVotes = _votes[guy];
-        }
-    }
-
-    /**
-    @notice Walks the list of candidates under consideration for election (i.e.,
-    those that have been  `swap`ped or `drop`ped into the `elected` set) and
-    finds the maximum vote value, updating the internal `maxVotes` property.
-    */
-    function updateMaxVotes() {
-        maxVotes = 0;
-        for ( var i = 0 ; i < elected.length ; i++ ) {
-            updateMaxVotes(elected[i]);
-        }
+    function isElected(address guy) returns (bool) {
+        return _isElected[uint(guy)];
     }
 
 
@@ -94,18 +84,13 @@ contract DSPrism is DSThing {
     @param j The index of the candidate in the `elected` list to move up.
     */
     function swap(uint i, uint j) {
-        require(i < j && j < elected.length);
-        var a = elected[i];
-        var b = elected[j];
-        elected[i] = b;
-        elected[j] = a;
-        assert( (_votes[a] >= maxVotes / 2 && _votes[a] < _votes[b]) ||
-                (a == 0x0 && _votes[b] >= maxVotes / 2) );
-        assert( _votes[elected[i+1]] < _votes[b] || elected[i+1] == 0x0 );
-
-        if (_votes[b] > maxVotes) {
-            maxVotes = _votes[b];
-        }
+        require(i < j && j < finalists.length);
+        var a = finalists[i];
+        var b = finalists[j];
+        finalists[i] = b;
+        finalists[j] = a;
+        assert( _votes[a] < _votes[b]);
+        assert( _votes[finalists[i+1]] < _votes[b] || finalists[i+1] == 0x0 );
     }
 
 
@@ -120,46 +105,15 @@ contract DSPrism is DSThing {
     @param b The address of the candidate to insert.
     */
     function drop(uint i, address b) {
-        require(i < elected.length);
-        var a = elected[i];
-        elected[i] = b;
+        require(i < finalists.length);
         require(!isFinalist[uint(b)]);
         isFinalist[uint(b)] = true;
+
+        var a = finalists[i];
+        finalists[i] = b;
         isFinalist[uint(a)] = false;
 
-        assert( (_votes[a] < _votes[b] && _votes[b] >= maxVotes / 2) ||
-                (b == 0x0 && _votes[a] < maxVotes / 2));
-
-        if (_votes[b] > maxVotes) {
-            maxVotes = _votes[b];
-        }
-    }
-
-
-    /**
-    @notice Replace candidate at index `i` with `0x0` if they have less than
-    half the votes of the most popular candidate.
-    */
-    function drop(uint i) {
-        drop(i, 0x0);
-    }
-
-
-    /**
-    @notice Checks membership of `guy` in elected set.
-    */
-    function isElected(address guy) returns (bool) {
-        // "Half votes" rule
-        if (_votes[guy] < maxVotes / 2) {
-            return false;
-        }
-
-        for( var i = 0; i < elected.length - 1; i++ ) {
-            if (guy == elected[i]) {
-                return true;
-            }
-        }
-        return false;
+        assert(_votes[a] < _votes[b]);
     }
 
 
@@ -167,7 +121,7 @@ contract DSPrism is DSThing {
     @notice Save an ordered addresses set and return a unique identifier for it.
     */
     function etch(address[] guys) returns (bytes32) {
-        requireOrderedSet(guys);
+        requireByteOrderedSet(guys);
         var key = sha3(guys);
         _slates[key] = Slate({ guys: guys });
 
@@ -215,6 +169,38 @@ contract DSPrism is DSThing {
 
 
     /**
+    @notice Elect the current set of finalists. The current set of finalists
+    must be sorted or the transaction will fail.
+    */
+    function snap() {
+        electedVotes[0] = _votes[finalists[0]];
+        elected[0] = finalists[0];
+        _isElected[uint(finalists[0])] = true;
+
+        uint maxVotes = electedVotes[0];
+        uint requiredVotes = maxVotes / 2;
+
+        for( var i = 1; i <= finalists.length - 1; i++ ) {
+            // Ensure the finalists are at least ordered enough that the elected
+            // set is ordered.
+            require(_votes[finalists[i]] < _votes[finalists[i-1]] ||
+                    _votes[finalists[i]] < requiredVotes);
+
+            _isElected[uint(elected[i])] = false;
+
+            if (_votes[finalists[i]] >= requiredVotes) {
+                electedVotes[i] = _votes[finalists[i]];
+                elected[i] = finalists[i];
+                _isElected[uint(elected[i])] = true;
+            } else {
+                elected[i] = 0x0;
+            }
+        }
+        electedID = sha3(elected);
+    }
+
+
+    /**
     @notice Lock up `amt` wei voting tokens and increase your vote weight
     by the same amount.
 
@@ -245,9 +231,8 @@ contract DSPrism is DSThing {
         _token.transfer(msg.sender, amt);
     }
 
-
     // Throws unless the array of addresses is a ordered set.
-    function requireOrderedSet(address[] guys) internal {
+    function requireByteOrderedSet(address[] guys) internal {
         if( guys.length == 0 || guys.length == 1 ) {
             return;
         }
