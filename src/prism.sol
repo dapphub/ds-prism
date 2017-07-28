@@ -182,7 +182,7 @@ contract DSPrism is DSThing {
             _isElected[uint(elected[i])] = false;
 
             // All finalists with at least `requiredVotes` votes are sorted.
-            require(_votes[finalists[i+1]] < _votes[finalists[i]] ||
+            require(_votes[finalists[i+1]] <= _votes[finalists[i]] ||
                     _votes[finalists[i+1]] < requiredVotes);
 
             if (_votes[finalists[i]] >= requiredVotes) {
