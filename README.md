@@ -68,7 +68,8 @@ A > D > B > G > F > E > C
 ```
 
 Which results in A, B, D, and G becoming active oracles, with C, E, and F
-failing due to having fewer than half the votes of A.
+failing due to having fewer than half the votes of A and, in the cases of C and
+E, not having enough space left in the elected set anyway.
 
 
 ## API
