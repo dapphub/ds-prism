@@ -84,6 +84,38 @@ The constructor. Takes the address of the voting token contract and the number
 of candidates to elect.
 
 
+### electedLength() returns (uint)
+
+Returns the length of the `elected` and `finalists` sets.
+
+
+### elected(uint i) returns (address)
+
+Returns the address of the elected candidate at index `i`.
+
+
+### electedID() returns (bytes32)
+
+Returns a SHA3 hash of the current elected set.
+
+
+### isElected(address guy) returns (bool)
+
+Returns a boolean indicating whether the given address is in the set of elected
+candidates.
+
+
+### finalists(uint i) returns (address)
+
+Returns the address of the finalist at index `i`.
+
+
+### isFinalist(address guy) returns (bool)
+
+Returns a boolean indicating whether the given address is in the set of elected
+finalists.
+
+
 ### swap(uint i, uint j)
 
 Swaps candidates `i` and `j` in the vote-ordered "finalists" set. The
@@ -109,11 +141,6 @@ Elect the current set of finalists. The current set of finalists must be sorted
 or the transaction will fail.
 
 
-### isOrderedSet(address[] guys) internal returns (bool)
-
-Returns true if the array of addresses is a ordered set.
-
-
 ### etch(address[] guys) returns (bytes32)
 
 Save a ordered addresses set and return a unique identifier for it.
@@ -131,6 +158,11 @@ chosen.
 
 Vote for the set of candidates with ID `which`, where `which` is a `bytes32`
 value returned by `vote(address[] guys)` or `etch(address[] guys)`.
+
+
+### votes(address guy) returns (uint)
+
+Returns the number of votes currently allocated to the given address.
 
 
 ### lock(uint128 amt)
