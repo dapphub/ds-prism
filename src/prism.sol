@@ -97,9 +97,8 @@ contract DSPrism is DSThing {
     /**
     @notice Replace candidate at index `i` in the set of elected candidates with
     the candidate at address `b`. This transaction will fail if candidate `i`
-    has more votes than the candidate at the given address. Address `b` may be
-    `0x0` if candidate at index `i` has less than half the votes of the most
-    popular candidate.
+    has more votes than the candidate at the given address, or if the candidate
+    is already a finalist.
 
     @param i The index of the candidate to replace.
     @param b The address of the candidate to insert.
@@ -130,11 +129,11 @@ contract DSPrism is DSThing {
 
 
     /**
-    @notice Approve candidates `guys`. This transaction will fail if the set of
+    @notice Vote for candidates `guys`. This transaction will fail if the set of
     candidates is not ordered according the their numerical values or if it
     contains duplicates. Returns a unique ID for the set of candidates chosen.
 
-    @param guys The ordered set of candidate addresses to approve.
+    @param guys The ordered set of candidate addresses to vote for.
     */
     function vote(address[] guys) returns (bytes32) {
         var slate = etch(guys);
@@ -145,17 +144,7 @@ contract DSPrism is DSThing {
 
 
     /**
-    @notice Returns the number of tokens allocated to voting for `guy`.
-
-    @param guy The address of the candidate whose votes we want to lookup.
-    */
-    function votes(address guy) constant returns (uint) {
-        return _votes[guy];
-    }
-
-
-    /**
-    @notice Approve the set of candidates with ID `which`.
+    @notice Vote for the set of candidates with ID `which`.
 
     @param which An identifier returned by "etch" or "vote."
     */
@@ -165,6 +154,16 @@ contract DSPrism is DSThing {
 
         voter.slate = which;
         addWeight(voter.weight, _slates[voter.slate]);
+    }
+
+
+    /**
+    @notice Returns the number of tokens allocated to voting for `guy`.
+
+    @param guy The address of the candidate whose votes we want to lookup.
+    */
+    function votes(address guy) constant returns (uint) {
+        return _votes[guy];
     }
 
 
