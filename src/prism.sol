@@ -35,7 +35,7 @@ contract DSPrism is DSThing {
     bytes32 public electedID;
     address[] public elected;
     uint[] public electedVotes;
-    bool[256**24] public _isElected; // for cheap membership checks
+    bool[256**24] _isElected; // for cheap membership checks
 
     DSToken _token;
     mapping(address=>Voter) _voters;
