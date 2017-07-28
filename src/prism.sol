@@ -194,6 +194,7 @@ contract DSPrism is DSThing {
                 _isElected[uint(elected[i])] = true;
             } else {
                 elected[i] = 0x0;
+                electedVotes[i] = 0;
             }
         }
         electedID = sha3(elected);
