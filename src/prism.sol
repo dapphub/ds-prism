@@ -32,6 +32,7 @@ contract DSPrism is DSThing {
     bool[256**24] public isFinalist; // for address uniqueness checking
 
     // "elected" properties
+    uint public electedLength;
     bytes32 public electedID;
     address[] public elected;
     uint[] public electedVotes;
@@ -51,6 +52,7 @@ contract DSPrism is DSThing {
     */
     function DSPrism(DSToken token, uint electionSize) DSThing()
     {
+        electedLength = electionSize;
         elected.length = electionSize;
         electedVotes.length = electionSize;
         finalists.length = electionSize;
