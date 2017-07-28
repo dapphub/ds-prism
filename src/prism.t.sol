@@ -208,44 +208,6 @@ contract DSPrismTest is DSTest {
         prism.swap(0, 2);
     }
 
-    /*
-    function test_drop_half_votes() {
-        initial_vote();
-
-        assert(prism.elected(0) == c1);
-        assert(prism.elected(1) == c2);
-        assert(prism.elected(2) == c3);
-
-        // Upset the order.
-        uSmall.doApprove(prism, uSmallInitialBalance);
-        uSmall.doLock(uSmallInitialBalance);
-
-        var uSmallSlate = new address[](1);
-        uSmallSlate[0] = c3;
-        uSmall.doVote(uSmallSlate);
-
-        uMedium.doFree(uMediumInitialBalance);
-        assert(prism.votes(c1) == 0);
-        assert(prism.votes(c2) == 0);
-        assert(prism.votes(c3) == uSmallInitialBalance);
-
-        prism.drop(0);
-        assert(prism.elected(0) == 0x0);
-
-        prism.drop(1);
-        assert(prism.elected(1) == 0x0);
-
-        prism.swap(0, 2);
-        assert(prism.elected(0) == c3);
-        assert(prism.elected(2) == 0x0);
-    }
-
-    function testFail_drop_half_votes() {
-        initial_vote();
-        prism.drop(0); // Can't be dropped, too many votes.
-    }
-    */
-
     function testFail_snap_while_out_of_order() {
         initial_vote();
 
