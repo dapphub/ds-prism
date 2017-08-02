@@ -210,8 +210,7 @@ contract DSPrism is DSThing {
         var voter = voters[msg.sender];
         addWeight(amt, slates[voter.slate]);
 
-        voters[msg.sender].weight += amt;
-
+        voter.weight = add(voter.weight, amt);
         token.transferFrom(msg.sender, this, amt);
     }
 
@@ -226,8 +225,7 @@ contract DSPrism is DSThing {
         var voter = voters[msg.sender];
         subWeight(amt, slates[voter.slate]);
 
-        voter.weight -= amt;
-
+        voter.weight = sub(voter.weight, amt);
         token.transfer(msg.sender, amt);
     }
 
@@ -245,14 +243,14 @@ contract DSPrism is DSThing {
     // Remove weight from slate.
     function subWeight(uint weight, Slate slate) internal {
         for( uint i = 0; i < slate.guys.length; i++) {
-            votes[slate.guys[i]] -= weight;
+            votes[slate.guys[i]] = sub(votes[slate.guys[i]], weight);
         }
     }
 
     // Add weight to slate.
     function addWeight(uint weight, Slate slate) internal {
         for( uint i = 0; i < slate.guys.length; i++) {
-            votes[slate.guys[i]] += weight;
+            votes[slate.guys[i]] = add(votes[slate.guys[i]], weight);
         }
     }
 }
