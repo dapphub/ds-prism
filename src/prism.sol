@@ -179,7 +179,7 @@ contract DSPrism is DSThing {
         // the list out-of-order with more than half of finalists[0]'s votes.
         uint requiredVotes = votes[finalists[0]] / 2;
 
-        for( var i = 0; i < finalists.length - 1; i++ ) {
+        for( uint i = 0; i < finalists.length - 1; i++ ) {
             isElected[uint(elected[i])] = false;
 
             // All finalists with at least `requiredVotes` votes are sorted.
@@ -235,7 +235,7 @@ contract DSPrism is DSThing {
         if( guys.length == 0 || guys.length == 1 ) {
             return;
         }
-        for( var i = 0; i < guys.length - 1; i++ ) {
+        for( uint i = 0; i < guys.length - 1; i++ ) {
             // strict inequality ensures both ordering and uniqueness
             require(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
         }
@@ -243,14 +243,14 @@ contract DSPrism is DSThing {
 
     // Remove weight from slate.
     function subWeight(uint weight, Slate slate) internal {
-        for(var i = 0; i < slate.guys.length; i++) {
+        for( uint i = 0; i < slate.guys.length; i++) {
             votes[slate.guys[i]] -= weight;
         }
     }
 
     // Add weight to slate.
     function addWeight(uint weight, Slate slate) internal {
-        for(var i = 0; i < slate.guys.length; i++) {
+        for( uint i = 0; i < slate.guys.length; i++) {
             votes[slate.guys[i]] += weight;
         }
     }
