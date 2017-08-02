@@ -31,19 +31,20 @@ contract DSPrism is DSThing {
     DSToken       public  token;
 
     // top candidates in "lazy decreasing" order by vote
-    address[]     public  finalists;
-    bool[256**24] public  isFinalist; // for address uniqueness checking
+    address[]                   public  finalists;
+    mapping (address => bool)   public  isFinalist;
 
-    // "elected" properties
-    uint256       public  electedLength;
-    bytes32       public  electedID;
-    address[]     public  elected;
-    uint[]        public  electedVotes;
-    bool[256**24] public  isElected;    // cheap membership checks
+    // elected set
+    address[]                   public  elected;
+    mapping (address=>bool)     public  isElected;
 
-    mapping(address=>Voter) public  voters;
-    mapping(address=>uint)  public  votes;
-    mapping(bytes32=>Slate)         slates;
+    uint256                     public  electedLength;
+    bytes32                     public  electedID;
+    uint256[]                   public  electedVotes;
+
+    mapping (address=>uint256)  public  votes;
+    mapping (address=>Voter)    public  voters;
+    mapping (bytes32=>Slate)            slates;
 
 
     /**
@@ -60,15 +61,6 @@ contract DSPrism is DSThing {
         finalists.length = electionSize;
         token = token_;
     }
-
-
-    /**
-    @notice Takes an address and returns true if the address has been elected.
-    */
-    function isElected(address guy) returns (bool) {
-        return isElected[uint(guy)];
-    }
-
 
     /**
     @notice Swap candidates `i` and `j` in the vote-ordered list. This
@@ -109,12 +101,12 @@ contract DSPrism is DSThing {
     */
     function drop(uint i, address b) {
         require(i < finalists.length);
-        require(!isFinalist[uint(b)]);
-        isFinalist[uint(b)] = true;
+        require(!isFinalist[b]);
+        isFinalist[b] = true;
 
         var a = finalists[i];
         finalists[i] = b;
-        isFinalist[uint(a)] = false;
+        isFinalist[a] = false;
 
         assert(votes[a] < votes[b]);
     }
@@ -160,17 +152,6 @@ contract DSPrism is DSThing {
         addWeight(voter.weight, slates[voter.slate]);
     }
 
-
-    /**
-    @notice Returns the number of tokens allocated to voting for `guy`.
-
-    @param guy The address of the candidate whose votes we want to lookup.
-    */
-    function votes(address guy) constant returns (uint) {
-        return votes[guy];
-    }
-
-
     /**
     @notice Elect the current set of finalists. The current set of finalists
     must be sorted or the transaction will fail.
@@ -181,7 +162,7 @@ contract DSPrism is DSThing {
         uint requiredVotes = votes[finalists[0]] / 2;
 
         for( uint i = 0; i < finalists.length - 1; i++ ) {
-            isElected[uint(elected[i])] = false;
+            isElected[elected[i]] = false;
 
             // All finalists with at least `requiredVotes` votes are sorted.
             require(votes[finalists[i+1]] <= votes[finalists[i]] ||
@@ -190,7 +171,7 @@ contract DSPrism is DSThing {
             if (votes[finalists[i]] >= requiredVotes) {
                 electedVotes[i] = votes[finalists[i]];
                 elected[i] = finalists[i];
-                isElected[uint(elected[i])] = true;
+                isElected[elected[i]] = true;
             } else {
                 elected[i] = 0x0;
                 electedVotes[i] = 0;
