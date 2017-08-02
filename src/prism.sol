@@ -19,44 +19,45 @@ import 'ds-thing/thing.sol';
 
 contract DSPrism is DSThing {
     struct Slate {
-        address[] guys; // Ordered set of candidates. Length is part of list encoding.
+        address[] guys; // Ordered set of candidates
     }
 
     struct Voter {
-        uint    weight;
-        bytes32 slate; // pointer to slate for reusability
+        uint256 weight;
+        bytes32 slate;  // pointer to slate for reusability
     }
 
+    DSToken       public  token;
+
     // top candidates in "lazy decreasing" order by vote
-    address[] public finalists;
-    bool[256**24] public isFinalist; // for address uniqueness checking
+    address[]     public  finalists;
+    bool[256**24] public  isFinalist; // for address uniqueness checking
 
     // "elected" properties
-    uint public electedLength;
-    bytes32 public electedID;
-    address[] public elected;
-    uint[] _electedVotes;
-    bool[256**24] _isElected; // for cheap membership checks
+    uint256       public  electedLength;
+    bytes32       public  electedID;
+    address[]     public  elected;
+    uint[]        public  electedVotes;
+    bool[256**24] public  isElected;    // cheap membership checks
 
-    DSToken _token;
-    mapping(address=>Voter) _voters;
-    mapping(address=>uint) _votes;
-    mapping(bytes32=>Slate) _slates;
+    mapping(address=>Voter) public  voters;
+    mapping(address=>uint)  public  votes;
+    mapping(bytes32=>Slate)         slates;
 
 
     /**
     @notice Create a DSPrism instance.
 
     @param electionSize The number of candidates to elect.
-    @param token The address of a DSToken instance.
+    @param token_ The address of a DSToken instance.
     */
-    function DSPrism(DSToken token, uint electionSize) DSThing()
+    function DSPrism(DSToken token_, uint electionSize) DSThing()
     {
         electedLength = electionSize;
         elected.length = electionSize;
-        _electedVotes.length = electionSize;
+        electedVotes.length = electionSize;
         finalists.length = electionSize;
-        _token = token;
+        token = token_;
     }
 
 
@@ -64,7 +65,7 @@ contract DSPrism is DSThing {
     @notice Takes an address and returns true if the address has been elected.
     */
     function isElected(address guy) returns (bool) {
-        return _isElected[uint(guy)];
+        return isElected[uint(guy)];
     }
 
 
@@ -91,8 +92,8 @@ contract DSPrism is DSThing {
         var b = finalists[j];
         finalists[i] = b;
         finalists[j] = a;
-        assert( _votes[a] < _votes[b]);
-        assert( _votes[finalists[i+1]] < _votes[b] || finalists[i+1] == 0x0 );
+        assert( votes[a] < votes[b]);
+        assert( votes[finalists[i+1]] < votes[b] || finalists[i+1] == 0x0 );
     }
 
 
@@ -114,7 +115,7 @@ contract DSPrism is DSThing {
         finalists[i] = b;
         isFinalist[uint(a)] = false;
 
-        assert(_votes[a] < _votes[b]);
+        assert(votes[a] < votes[b]);
     }
 
 
@@ -124,7 +125,7 @@ contract DSPrism is DSThing {
     function etch(address[] guys) returns (bytes32) {
         requireByteOrderedSet(guys);
         var key = sha3(guys);
-        _slates[key] = Slate({ guys: guys });
+        slates[key] = Slate({ guys: guys });
 
         return key;
     }
@@ -151,11 +152,11 @@ contract DSPrism is DSThing {
     @param which An identifier returned by "etch" or "vote."
     */
     function vote(bytes32 which) {
-        var voter = _voters[msg.sender];
-        subWeight(voter.weight, _slates[voter.slate]);
+        var voter = voters[msg.sender];
+        subWeight(voter.weight, slates[voter.slate]);
 
         voter.slate = which;
-        addWeight(voter.weight, _slates[voter.slate]);
+        addWeight(voter.weight, slates[voter.slate]);
     }
 
 
@@ -165,7 +166,7 @@ contract DSPrism is DSThing {
     @param guy The address of the candidate whose votes we want to lookup.
     */
     function votes(address guy) constant returns (uint) {
-        return _votes[guy];
+        return votes[guy];
     }
 
 
@@ -176,22 +177,22 @@ contract DSPrism is DSThing {
     function snap() {
         // Either finalists[0] has the most votes, or there will be someone in
         // the list out-of-order with more than half of finalists[0]'s votes.
-        uint requiredVotes = _votes[finalists[0]] / 2;
+        uint requiredVotes = votes[finalists[0]] / 2;
 
         for( var i = 0; i < finalists.length - 1; i++ ) {
-            _isElected[uint(elected[i])] = false;
+            isElected[uint(elected[i])] = false;
 
             // All finalists with at least `requiredVotes` votes are sorted.
-            require(_votes[finalists[i+1]] <= _votes[finalists[i]] ||
-                    _votes[finalists[i+1]] < requiredVotes);
+            require(votes[finalists[i+1]] <= votes[finalists[i]] ||
+                    votes[finalists[i+1]] < requiredVotes);
 
-            if (_votes[finalists[i]] >= requiredVotes) {
-                _electedVotes[i] = _votes[finalists[i]];
+            if (votes[finalists[i]] >= requiredVotes) {
+                electedVotes[i] = votes[finalists[i]];
                 elected[i] = finalists[i];
-                _isElected[uint(elected[i])] = true;
+                isElected[uint(elected[i])] = true;
             } else {
                 elected[i] = 0x0;
-                _electedVotes[i] = 0;
+                electedVotes[i] = 0;
             }
         }
         electedID = sha3(elected);
@@ -205,12 +206,12 @@ contract DSPrism is DSThing {
     @param amt Number of tokens (in the token's smallest denomination) to lock.
     */
     function lock(uint128 amt) {
-        var voter = _voters[msg.sender];
-        addWeight(amt, _slates[voter.slate]);
+        var voter = voters[msg.sender];
+        addWeight(amt, slates[voter.slate]);
 
-        _voters[msg.sender].weight += amt;
+        voters[msg.sender].weight += amt;
 
-        _token.transferFrom(msg.sender, this, amt);
+        token.transferFrom(msg.sender, this, amt);
     }
 
 
@@ -221,12 +222,12 @@ contract DSPrism is DSThing {
     @param amt Number of tokens (in the token's smallest denomination) to free.
     */
     function free(uint128 amt) {
-        var voter = _voters[msg.sender];
-        subWeight(amt, _slates[voter.slate]);
+        var voter = voters[msg.sender];
+        subWeight(amt, slates[voter.slate]);
 
         voter.weight -= amt;
 
-        _token.transfer(msg.sender, amt);
+        token.transfer(msg.sender, amt);
     }
 
     // Throws unless the array of addresses is a ordered set.
@@ -243,14 +244,14 @@ contract DSPrism is DSThing {
     // Remove weight from slate.
     function subWeight(uint weight, Slate slate) internal {
         for(var i = 0; i < slate.guys.length; i++) {
-            _votes[slate.guys[i]] -= weight;
+            votes[slate.guys[i]] -= weight;
         }
     }
 
     // Add weight to slate.
     function addWeight(uint weight, Slate slate) internal {
         for(var i = 0; i < slate.guys.length; i++) {
-            _votes[slate.guys[i]] += weight;
+            votes[slate.guys[i]] += weight;
         }
     }
 }
