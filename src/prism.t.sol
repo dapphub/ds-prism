@@ -248,7 +248,7 @@ contract DSPrismTest is DSTest {
     function testFail_drop_past_end_of_elected() {
         assert(token.balanceOf(uLarge) == uLargeInitialBalance);
 
-        var slateID = initial_vote();
+        initial_vote();
 
         // Upset the order.
         uLarge.doApprove(prism, uLargeInitialBalance);
