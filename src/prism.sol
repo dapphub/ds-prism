@@ -53,7 +53,7 @@ contract DSPrism is DSThing {
     @param electionSize The number of candidates to elect.
     @param token_ The address of a DSToken instance.
     */
-    function DSPrism(DSToken token_, uint electionSize) DSThing()
+    function DSPrism(DSToken token_, uint electionSize)
     {
         electedLength = electionSize;
         elected.length = electionSize;
