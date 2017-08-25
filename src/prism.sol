@@ -19,15 +19,6 @@ import 'ds-token/token.sol';
 import 'ds-thing/thing.sol';
 
 contract DSPrism is DSThing {
-    struct Slate {
-        address[] guys; // Ordered set of candidates
-    }
-
-    struct Voter {
-        uint256 weight;
-        bytes32 slate;  // pointer to slate for reusability
-    }
-
     DSToken       public  GOV;
     DSToken       public  IOU;
 
@@ -43,9 +34,10 @@ contract DSPrism is DSThing {
     bytes32                     public  electedID;
     uint256[]                   public  electedVotes;
 
-    mapping (address=>uint256)  public  votes;
-    mapping (address=>Voter)    public  voters;
-    mapping (bytes32=>Slate)            slates;
+    mapping (address=>bytes32)  public  votes;
+    mapping (address=>uint128)  public  approvals;
+    mapping (address=>uint128)  public  deposits;
+    mapping (bytes32=>address[])            slates;
 
 
     /**
@@ -69,15 +61,16 @@ contract DSPrism is DSThing {
     @notice Swap candidates `i` and `j` in the vote-ordered list. This
     transaction will fail if `i` is greater than `j`, if candidate `i` has a
     higher score than candidate `j`, if the candidate one slot below the slot
-    candidate `j` is moving to has more votes than candidate `j`, or if
-    candidate `j` has fewer than half the votes of the most popular candidate.
-    This transaction will always succeed if candidate `j` has at least half the
-    votes of the most popular candidate and if candidate `i` either also has
-    less than half the votes of the most popular candidate or is `0x0`.
+    candidate `j` is moving to has more approvals than candidate `j`, or if
+    candidate `j` has fewer than half the approvals of the most popular
+    candidate.  This transaction will always succeed if candidate `j` has at
+    least half the approvals of the most popular candidate and if candidate `i`
+    either also has less than half the approvals of the most popular candidate
+    or is `0x0`.
 
     @dev This function is meant to be called repeatedly until the list of
     candidates, `elected`, has been ordered in descending order by weighted
-    votes. The winning candidates will end up at the front of the list.
+    approvals. The winning candidates will end up at the front of the list.
 
     @param i The index of the candidate in the `elected` list to move down.
     @param j The index of the candidate in the `elected` list to move up.
@@ -88,16 +81,17 @@ contract DSPrism is DSThing {
         var b = finalists[j];
         finalists[i] = b;
         finalists[j] = a;
-        assert( votes[a] < votes[b]);
-        assert( votes[finalists[i+1]] < votes[b] || finalists[i+1] == 0x0 );
+        assert( approvals[a] < approvals[b]);
+        assert( approvals[finalists[i+1]] < approvals[b] ||
+                finalists[i+1] == 0x0 );
     }
 
 
     /**
     @notice Replace candidate at index `i` in the set of elected candidates with
     the candidate at address `b`. This transaction will fail if candidate `i`
-    has more votes than the candidate at the given address, or if the candidate
-    is already a finalist.
+    has more approvals than the candidate at the given address, or if the
+    candidate is already a finalist.
 
     @param i The index of the candidate to replace.
     @param b The address of the candidate to insert.
@@ -111,7 +105,7 @@ contract DSPrism is DSThing {
         finalists[i] = b;
         isFinalist[a] = false;
 
-        assert(votes[a] < votes[b]);
+        assert(approvals[a] < approvals[b]);
     }
 
 
@@ -121,8 +115,7 @@ contract DSPrism is DSThing {
     function etch(address[] guys) returns (bytes32) {
         requireByteOrderedSet(guys);
         var key = sha3(guys);
-        slates[key] = Slate({ guys: guys });
-
+        slates[key] = guys;
         return key;
     }
 
@@ -148,11 +141,10 @@ contract DSPrism is DSThing {
     @param which An identifier returned by "etch" or "vote."
     */
     function vote(bytes32 which) {
-        var voter = voters[msg.sender];
-        subWeight(voter.weight, slates[voter.slate]);
-
-        voter.slate = which;
-        addWeight(voter.weight, slates[voter.slate]);
+        var weight = deposits[msg.sender];
+        subWeight(weight, slates[votes[msg.sender]]);
+        addWeight(weight, slates[which]);
+        votes[msg.sender] = which;
     }
 
     /**
@@ -160,19 +152,20 @@ contract DSPrism is DSThing {
     must be sorted or the transaction will fail.
     */
     function snap() {
-        // Either finalists[0] has the most votes, or there will be someone in
-        // the list out-of-order with more than half of finalists[0]'s votes.
-        uint requiredVotes = votes[finalists[0]] / 2;
+        // Either finalists[0] has the most approvals, or there will be someone
+        // in the list out-of-order with more than half of finalists[0]'s
+        // approvals.
+        uint requiredApprovals = approvals[finalists[0]] / 2;
 
         for( uint i = 0; i < finalists.length - 1; i++ ) {
             isElected[elected[i]] = false;
 
-            // All finalists with at least `requiredVotes` votes are sorted.
-            require(votes[finalists[i+1]] <= votes[finalists[i]] ||
-                    votes[finalists[i+1]] < requiredVotes);
+            // All finalists with at least `requiredVotes` approvals are sorted.
+            require(approvals[finalists[i+1]] <= approvals[finalists[i]] ||
+                    approvals[finalists[i+1]] < requiredApprovals);
 
-            if (votes[finalists[i]] >= requiredVotes) {
-                electedVotes[i] = votes[finalists[i]];
+            if (approvals[finalists[i]] >= requiredApprovals) {
+                electedVotes[i] = approvals[finalists[i]];
                 elected[i] = finalists[i];
                 isElected[elected[i]] = true;
             } else {
@@ -185,34 +178,32 @@ contract DSPrism is DSThing {
 
 
     /**
-    @notice Lock up `amt` wei voting tokens and increase your vote weight
+    @notice Lock up `wad` wei voting tokens and increase your vote weight
     by the same amount.
 
-    @param amt Number of tokens (in the token's smallest denomination) to lock.
+    @param wad Number of tokens (in the token's smallest denomination) to lock.
     */
-    function lock(uint128 amt) {
-        GOV.transferFrom(msg.sender, this, amt);
-        IOU.mint(amt);
-        IOU.transfer(msg.sender, amt);
-        var voter = voters[msg.sender];
-        addWeight(amt, slates[voter.slate]);
-        voter.weight = add(voter.weight, amt);
+    function lock(uint128 wad) {
+        GOV.pull(msg.sender, wad);
+        IOU.mint(wad);
+        IOU.push(msg.sender, wad);
+        addWeight(wad, slates[votes[msg.sender]]);
+        deposits[msg.sender] = wadd(deposits[msg.sender], wad);
     }
 
 
     /**
-    @notice Retrieve `amt` wei of your locked voting tokens and decrease your
+    @notice Retrieve `wad` wei of your locked voting tokens and decrease your
     vote weight by the same amount.
 
-    @param amt Number of tokens (in the token's smallest denomination) to free.
+    @param wad Number of tokens (in the token's smallest denomination) to free.
     */
-    function free(uint128 amt) {
-        var voter = voters[msg.sender];
-        subWeight(amt, slates[voter.slate]);
-        voter.weight = sub(voter.weight, amt);
-        IOU.transferFrom(msg.sender, this, amt);
-        IOU.burn(amt);
-        GOV.transfer(msg.sender, amt);
+    function free(uint128 wad) {
+        subWeight(wad, slates[votes[msg.sender]]);
+        deposits[msg.sender] = wsub(deposits[msg.sender], wad);
+        IOU.pull(msg.sender, wad);
+        IOU.burn(wad);
+        GOV.push(msg.sender, wad);
     }
 
     // Throws unless the array of addresses is a ordered set.
@@ -227,16 +218,16 @@ contract DSPrism is DSThing {
     }
 
     // Remove weight from slate.
-    function subWeight(uint weight, Slate slate) internal {
-        for( uint i = 0; i < slate.guys.length; i++) {
-            votes[slate.guys[i]] = sub(votes[slate.guys[i]], weight);
+    function subWeight(uint128 weight, address[] slate) internal {
+        for( uint i = 0; i < slate.length; i++) {
+            approvals[slate[i]] = wsub(approvals[slate[i]], weight);
         }
     }
 
     // Add weight to slate.
-    function addWeight(uint weight, Slate slate) internal {
-        for( uint i = 0; i < slate.guys.length; i++) {
-            votes[slate.guys[i]] = add(votes[slate.guys[i]], weight);
+    function addWeight(uint128 weight, address[] slate) internal {
+        for( uint i = 0; i < slate.length; i++) {
+            approvals[slate[i]] = wadd(approvals[slate[i]], weight);
         }
     }
 }
