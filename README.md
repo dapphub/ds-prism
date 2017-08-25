@@ -1,6 +1,10 @@
 # ds-prism
 
-Approval voting to select a set of addresses.
+
+## Summary
+
+This contract provides a way to elect a set of addresses via approval voting.
+
 
 ## Approval Voting System
 
@@ -15,6 +19,9 @@ momentarily into the set of elected candidates.
 In addition, `ds-prism`...
 - ...weights votes according to the quantity of a voting token they've chosen to
   lock up in the `DSPrism` contract.
+- ...issues IOU tokens representing locked funds, which can be redeemed for
+  locked funds only by those who have funds locked, and only up to the amount
+  they have locked.
 - ...requires each elected candidate to have at least half the votes of the most
   popular candidate. This prevents unqualified candidates from being elected in
   the event there are not enough qualified candidates to fill the elected set.
@@ -32,6 +39,17 @@ specifically for electing oracles in Maker DAO, this may be considered a feature
 rather than a shortcoming: candidates that are too inattentive to realize their
 own election don't belong in the elected set anyway. This feature may or may not
 also be helpful in your own projects.
+
+
+## Why an IOU Token?
+
+The IOU token allows for chaining governance contracts. An arbitrary number of
+`DSChief`, `DSPrism`, or other contracts of that kind may essentially use the
+same governance token by accepting the IOU token of the `DSPrism` contract
+before it as a governance token. E.g., given three `DSPrism` contracts,
+`prismA`, `prismB`, and `prismC`, with `prismA.GOV` being the `MKR` token,
+setting `prismB.GOV` to `prismA.IOU` and `prismC.GOV` to `prismB.IOU` allows all
+three contracts to essentially run using a common pool of `MKR`.
 
 
 ### Example

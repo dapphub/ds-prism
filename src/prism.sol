@@ -28,7 +28,8 @@ contract DSPrism is DSThing {
         bytes32 slate;  // pointer to slate for reusability
     }
 
-    DSToken       public  token;
+    DSToken       public  GOV;
+    DSToken       public  IOU;
 
     // top candidates in "lazy decreasing" order by vote
     address[]                   public  finalists;
@@ -51,15 +52,17 @@ contract DSPrism is DSThing {
     @notice Create a DSPrism instance.
 
     @param electionSize The number of candidates to elect.
-    @param token_ The address of a DSToken instance.
+    @param gov The address of the DSToken instance to use for governance.
+    @param iou The address of the DSToken instance to use for IOUs.
     */
-    function DSPrism(DSToken token_, uint electionSize)
+    function DSPrism(DSToken gov, DSToken iou, uint electionSize)
     {
         electedLength = electionSize;
         elected.length = electionSize;
         electedVotes.length = electionSize;
         finalists.length = electionSize;
-        token = token_;
+        GOV = gov;
+        IOU = iou;
     }
 
     /**
@@ -188,11 +191,12 @@ contract DSPrism is DSThing {
     @param amt Number of tokens (in the token's smallest denomination) to lock.
     */
     function lock(uint128 amt) {
+        GOV.transferFrom(msg.sender, this, amt);
+        IOU.mint(amt);
+        IOU.transfer(msg.sender, amt);
         var voter = voters[msg.sender];
         addWeight(amt, slates[voter.slate]);
-
         voter.weight = add(voter.weight, amt);
-        token.transferFrom(msg.sender, this, amt);
     }
 
 
@@ -205,9 +209,10 @@ contract DSPrism is DSThing {
     function free(uint128 amt) {
         var voter = voters[msg.sender];
         subWeight(amt, slates[voter.slate]);
-
         voter.weight = sub(voter.weight, amt);
-        token.transfer(msg.sender, amt);
+        IOU.transferFrom(msg.sender, this, amt);
+        IOU.burn(amt);
+        GOV.transfer(msg.sender, amt);
     }
 
     // Throws unless the array of addresses is a ordered set.
