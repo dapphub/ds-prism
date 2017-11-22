@@ -25,64 +25,73 @@ contract PrismUser {
     DSToken GOV;
     DSPrism prism;
 
-    function PrismUser(DSToken GOV_, DSPrism prism_) {
+    function PrismUser(DSToken GOV_, DSPrism prism_) public {
         GOV = GOV_;
         prism = prism_;
     }
 
     function doTransferFrom(address from, address to, uint amount)
+        public
         returns (bool)
     {
         return GOV.transferFrom(from, to, amount);
     }
 
     function doTransfer(address to, uint amount)
+        public
         returns (bool)
     {
         return GOV.transfer(to, amount);
     }
 
     function doApprove(DSToken token, address recipient, uint amount)
+        public
         returns (bool)
     {
         return token.approve(recipient, amount);
     }
 
     function doAllowance(address owner, address spender)
-        constant returns (uint)
+        public
+        view
+        returns (uint)
     {
         return GOV.allowance(owner, spender);
     }
 
-    function doBalanceOf(address who) constant returns (uint) {
+    function doBalanceOf(address who)
+        public
+        view
+        returns (uint)
+    {
         return GOV.balanceOf(who);
     }
 
-    function doSwap(uint i, uint j) {
+    function doSwap(uint i, uint j) public {
         prism.swap(i, j);
     }
 
-    function doDrop(uint i, address b) {
+    function doDrop(uint i, address b) public {
         prism.drop(i, b);
     }
 
-    function doEtch(address[] guys) returns (bytes32) {
+    function doEtch(address[] guys) public returns (bytes32) {
         return prism.etch(guys);
     }
 
-    function doVote(address[] guys) returns (bytes32) {
+    function doVote(address[] guys) public returns (bytes32) {
         return prism.vote(guys);
     }
 
-    function doVote(bytes32 id) {
+    function doVote(bytes32 id) public {
         prism.vote(id);
     }
 
-    function doLock(uint amt) {
+    function doLock(uint amt) public {
         prism.lock(amt);
     }
 
-    function doFree(uint amt) {
+    function doFree(uint amt) public {
         prism.free(amt);
     }
 }
@@ -114,7 +123,7 @@ contract DSPrismTest is DSTest {
     PrismUser uMedium;
     PrismUser uSmall;
 
-    function setUp() {
+    function setUp() public {
         GOV = new DSToken("GOV");
         GOV.mint(initialBalance);
 
@@ -135,15 +144,7 @@ contract DSPrismTest is DSTest {
         GOV.transfer(uSmall, uSmallInitialBalance);
     }
 
-    function test_basic_sanity() {
-        assert(true);
-    }
-
-    function testFail_basic_sanity() {
-        assert(false);
-    }
-
-    function test_etch_returns_same_id_for_same_sets() {
+    function test_etch_returns_same_id_for_same_sets() public {
         var candidates = new address[](3);
         candidates[0] = c1;
         candidates[1] = c2;
@@ -154,19 +155,19 @@ contract DSPrismTest is DSTest {
         assertEq32(id, uMedium.doEtch(candidates));
     }
 
-    function test_size_zero_slate() {
+    function test_size_zero_slate() public {
         var candidates = new address[](0);
         var id = uSmall.doEtch(candidates);
         uSmall.doVote(id);
     }
-    function test_size_one_slate() {
+    function test_size_one_slate() public {
         var candidates = new address[](1);
         candidates[0] = c1;
         var id = uSmall.doEtch(candidates);
         uSmall.doVote(id);
     }
 
-    function testFail_etch_requires_ordered_sets() {
+    function testFail_etch_requires_ordered_sets() public {
         var candidates = new address[](3);
         candidates[0] = c2;
         candidates[1] = c1;
@@ -175,7 +176,7 @@ contract DSPrismTest is DSTest {
         uSmall.doEtch(candidates);
     }
 
-    function test_lock_debits_user() {
+    function test_lock_debits_user() public {
         assert(GOV.balanceOf(uLarge) == uLargeInitialBalance);
 
         var lockedAmt = uLargeInitialBalance / 10;
@@ -186,7 +187,7 @@ contract DSPrismTest is DSTest {
                lockedAmt);
     }
 
-    function test_changing_weight_after_voting() {
+    function test_changing_weight_after_voting() public {
         var uLargeLockedAmt = uLargeInitialBalance / 2;
         uLarge.doApprove(GOV, prism, uLargeLockedAmt);
         uLarge.doApprove(IOU, prism, uLargeLockedAmt);
@@ -209,7 +210,7 @@ contract DSPrismTest is DSTest {
         assert(prism.approvals(c1) == uLargeLockedAmt);
     }
 
-    function test_voting_and_reordering() {
+    function test_voting_and_reordering() public {
         assert(GOV.balanceOf(uLarge) == uLargeInitialBalance);
 
         initial_vote();
@@ -227,7 +228,7 @@ contract DSPrismTest is DSTest {
         prism.swap(0, 2);
     }
 
-    function testFail_snap_while_out_of_order() {
+    function testFail_snap_while_out_of_order() public {
         initial_vote();
 
         // Upset the order.
@@ -244,7 +245,7 @@ contract DSPrismTest is DSTest {
         prism.snap();
     }
 
-    function test_swap_half_votes() {
+    function test_swap_half_votes() public {
         initial_vote();
 
         // Upset the order.
@@ -265,7 +266,7 @@ contract DSPrismTest is DSTest {
         assert(prism.isElected(c3));
     }
 
-    function testFail_drop_past_end_of_elected() {
+    function testFail_drop_past_end_of_elected() public {
         assert(GOV.balanceOf(uLarge) == uLargeInitialBalance);
 
         initial_vote();
@@ -282,7 +283,7 @@ contract DSPrismTest is DSTest {
         prism.drop(3, c4);
     }
 
-    function testFail_voting_and_reordering_without_weight() {
+    function testFail_voting_and_reordering_without_weight() public {
         assert(GOV.balanceOf(uLarge) == uLargeInitialBalance);
 
         initial_vote();
@@ -296,7 +297,7 @@ contract DSPrismTest is DSTest {
         prism.swap(0, 2);
     }
 
-    function test_voting_by_slate_id() {
+    function test_voting_by_slate_id() public {
         assert(GOV.balanceOf(uLarge) == uLargeInitialBalance);
 
         var slateID = initial_vote();

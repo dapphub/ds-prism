@@ -49,7 +49,7 @@ contract DSPrism is DSThing {
     @param gov The address of the DSToken instance to use for governance.
     @param iou The address of the DSToken instance to use for IOUs.
     */
-    function DSPrism(DSToken gov, DSToken iou, uint electionSize)
+    function DSPrism(DSToken gov, DSToken iou, uint electionSize) public
     {
         electedLength = electionSize;
         elected.length = electionSize;
@@ -77,7 +77,7 @@ contract DSPrism is DSThing {
     @param i The index of the candidate in the `elected` list to move down.
     @param j The index of the candidate in the `elected` list to move up.
     */
-    function swap(uint i, uint j) {
+    function swap(uint i, uint j) public {
         require(i < j && j < finalists.length);
         var a = finalists[i];
         var b = finalists[j];
@@ -98,7 +98,7 @@ contract DSPrism is DSThing {
     @param i The index of the candidate to replace.
     @param b The address of the candidate to insert.
     */
-    function drop(uint i, address b) {
+    function drop(uint i, address b) public {
         require(i < finalists.length);
         require(!isFinalist[b]);
         isFinalist[b] = true;
@@ -114,9 +114,9 @@ contract DSPrism is DSThing {
     /**
     @notice Save an ordered addresses set and return a unique identifier for it.
     */
-    function etch(address[] guys) returns (bytes32) {
+    function etch(address[] guys) public returns (bytes32) {
         requireByteOrderedSet(guys);
-        var key = sha3(guys);
+        var key = keccak256(guys);
         slates[key] = guys;
         return key;
     }
@@ -129,7 +129,7 @@ contract DSPrism is DSThing {
 
     @param guys The ordered set of candidate addresses to vote for.
     */
-    function vote(address[] guys) returns (bytes32) {
+    function vote(address[] guys) public returns (bytes32) {
         var slate = etch(guys);
         vote(slate);
 
@@ -142,7 +142,7 @@ contract DSPrism is DSThing {
 
     @param which An identifier returned by "etch" or "vote."
     */
-    function vote(bytes32 which) {
+    function vote(bytes32 which) public {
         var weight = deposits[msg.sender];
         subWeight(weight, slates[votes[msg.sender]]);
         addWeight(weight, slates[which]);
@@ -153,7 +153,7 @@ contract DSPrism is DSThing {
     @notice Elect the current set of finalists. The current set of finalists
     must be sorted or the transaction will fail.
     */
-    function snap() {
+    function snap() public {
         // Either finalists[0] has the most approvals, or there will be someone
         // in the list out-of-order with more than half of finalists[0]'s
         // approvals.
@@ -175,7 +175,7 @@ contract DSPrism is DSThing {
                 electedVotes[i] = 0;
             }
         }
-        electedID = sha3(elected);
+        electedID = keccak256(elected);
     }
 
 
@@ -185,7 +185,7 @@ contract DSPrism is DSThing {
 
     @param wad Number of tokens (in the token's smallest denomination) to lock.
     */
-    function lock(uint wad) {
+    function lock(uint wad) public {
         GOV.pull(msg.sender, wad);
         IOU.mint(wad);
         IOU.push(msg.sender, wad);
@@ -200,7 +200,7 @@ contract DSPrism is DSThing {
 
     @param wad Number of tokens (in the token's smallest denomination) to free.
     */
-    function free(uint wad) {
+    function free(uint wad) public {
         subWeight(wad, slates[votes[msg.sender]]);
         deposits[msg.sender] = sub(deposits[msg.sender], wad);
         IOU.pull(msg.sender, wad);
@@ -209,7 +209,7 @@ contract DSPrism is DSThing {
     }
 
     // Throws unless the array of addresses is a ordered set.
-    function requireByteOrderedSet(address[] guys) internal {
+    function requireByteOrderedSet(address[] guys) pure internal {
         if( guys.length == 0 || guys.length == 1 ) {
             return;
         }
