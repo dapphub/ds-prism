@@ -78,11 +78,11 @@ contract PrismUser {
         prism.vote(id);
     }
 
-    function doLock(uint128 amt) {
+    function doLock(uint amt) {
         prism.lock(amt);
     }
 
-    function doFree(uint128 amt) {
+    function doFree(uint amt) {
         prism.free(amt);
     }
 }
@@ -100,10 +100,10 @@ contract DSPrismTest is DSTest {
     address constant c7 = 0x7;
     address constant c8 = 0x8;
     address constant c9 = 0x9;
-    uint128 constant initialBalance = 1000 ether;
-    uint128 constant uLargeInitialBalance = initialBalance / 3;
-    uint128 constant uMediumInitialBalance = initialBalance / 4;
-    uint128 constant uSmallInitialBalance = initialBalance / 5;
+    uint256 constant initialBalance = 1000 ether;
+    uint256 constant uLargeInitialBalance = initialBalance / 3;
+    uint256 constant uMediumInitialBalance = initialBalance / 4;
+    uint256 constant uSmallInitialBalance = initialBalance / 5;
 
     DSPrism prism;
     DSToken GOV;

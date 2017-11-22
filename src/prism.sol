@@ -37,9 +37,9 @@ contract DSPrism is DSThing {
     uint256[]                   public  electedVotes;
 
     mapping (address=>bytes32)  public  votes;
-    mapping (address=>uint128)  public  approvals;
-    mapping (address=>uint128)  public  deposits;
-    mapping (bytes32=>address[])            slates;
+    mapping (address=>uint256)  public  approvals;
+    mapping (address=>uint256)  public  deposits;
+    mapping (bytes32=>address[])        slates;
 
 
     /**
@@ -185,12 +185,12 @@ contract DSPrism is DSThing {
 
     @param wad Number of tokens (in the token's smallest denomination) to lock.
     */
-    function lock(uint128 wad) {
+    function lock(uint wad) {
         GOV.pull(msg.sender, wad);
         IOU.mint(wad);
         IOU.push(msg.sender, wad);
         addWeight(wad, slates[votes[msg.sender]]);
-        deposits[msg.sender] = wadd(deposits[msg.sender], wad);
+        deposits[msg.sender] = add(deposits[msg.sender], wad);
     }
 
 
@@ -200,9 +200,9 @@ contract DSPrism is DSThing {
 
     @param wad Number of tokens (in the token's smallest denomination) to free.
     */
-    function free(uint128 wad) {
+    function free(uint wad) {
         subWeight(wad, slates[votes[msg.sender]]);
-        deposits[msg.sender] = wsub(deposits[msg.sender], wad);
+        deposits[msg.sender] = sub(deposits[msg.sender], wad);
         IOU.pull(msg.sender, wad);
         IOU.burn(wad);
         GOV.push(msg.sender, wad);
@@ -220,16 +220,16 @@ contract DSPrism is DSThing {
     }
 
     // Remove weight from slate.
-    function subWeight(uint128 weight, address[] slate) internal {
+    function subWeight(uint weight, address[] slate) internal {
         for( uint i = 0; i < slate.length; i++) {
-            approvals[slate[i]] = wsub(approvals[slate[i]], weight);
+            approvals[slate[i]] = sub(approvals[slate[i]], weight);
         }
     }
 
     // Add weight to slate.
-    function addWeight(uint128 weight, address[] slate) internal {
+    function addWeight(uint weight, address[] slate) internal {
         for( uint i = 0; i < slate.length; i++) {
-            approvals[slate[i]] = wadd(approvals[slate[i]], weight);
+            approvals[slate[i]] = add(approvals[slate[i]], weight);
         }
     }
 }
