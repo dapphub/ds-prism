@@ -15,14 +15,31 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity^0.4.17;
+pragma solidity ^0.8.1;
 
-import 'ds-token/token.sol';
-import 'ds-thing/thing.sol';
+contract IERC20MintBurn {
+    function totalSupply() public view returns (uint supply);
+    function balanceOf( address who ) public view returns (uint value);
+    function allowance( address owner, address spender ) public view returns (uint _allowance);
 
-contract DSPrism is DSThing {
-    DSToken       public  GOV;
-    DSToken       public  IOU;
+    function transfer( address to, uint value) public returns (bool ok);
+    function transferFrom( address from, address to, uint value) public returns (bool ok);
+    function approve( address spender, uint value ) public returns (bool ok);
+
+    function mint(uint amount) public;
+    function burn(uint amount) public;
+
+    event Transfer( address indexed from, address indexed to, uint value);
+    event Approval( address indexed owner, address indexed spender, uint value);
+}
+
+contract SafeAddSub {
+}
+
+
+contract Prism {
+    IERC20MintBurn   public  GOV;
+    IERC20MintBurn   public  IOU;
 
     // top candidates in "lazy decreasing" order by vote
     address[]                   public  finalists;
@@ -41,15 +58,21 @@ contract DSPrism is DSThing {
     mapping (address=>uint256)  public  deposits;
     mapping (bytes32=>address[])        slates;
 
+    function add(uint x, uint y) internal pure returns (uint z) {
+        require((z = x + y) >= x, "prism-math-add-overflow");
+    }
+    function sub(uint x, uint y) internal pure returns (uint z) {
+        require((z = x - y) <= x, "prism-math-sub-underflow");
+    }
 
     /**
-    @notice Create a DSPrism instance.
+    @notice Create a Prism instance.
 
     @param electionSize The number of candidates to elect.
-    @param gov The address of the DSToken instance to use for governance.
-    @param iou The address of the DSToken instance to use for IOUs.
+    @param gov The address of the IERC20MintBurn instance to use for governance.
+    @param iou The address of the IERC20MintBurn instance to use for IOUs.
     */
-    function DSPrism(DSToken gov, DSToken iou, uint electionSize) public
+    constructor(IERC20MintBurn gov, IERC20MintBurn iou, uint electionSize) public
     {
         electedLength = electionSize;
         elected.length = electionSize;
@@ -79,8 +102,8 @@ contract DSPrism is DSThing {
     */
     function swap(uint i, uint j) public {
         require(i < j && j < finalists.length);
-        var a = finalists[i];
-        var b = finalists[j];
+        address a = finalists[i];
+        address b = finalists[j];
         finalists[i] = b;
         finalists[j] = a;
         assert( approvals[a] < approvals[b]);
@@ -103,7 +126,7 @@ contract DSPrism is DSThing {
         require(!isFinalist[b]);
         isFinalist[b] = true;
 
-        var a = finalists[i];
+        address a = finalists[i];
         finalists[i] = b;
         isFinalist[a] = false;
 
@@ -116,7 +139,7 @@ contract DSPrism is DSThing {
     */
     function etch(address[] guys) public returns (bytes32) {
         requireByteOrderedSet(guys);
-        var key = keccak256(guys);
+        bytes32 key = keccak256(guys);
         slates[key] = guys;
         return key;
     }
@@ -130,7 +153,7 @@ contract DSPrism is DSThing {
     @param guys The ordered set of candidate addresses to vote for.
     */
     function vote(address[] guys) public returns (bytes32) {
-        var slate = etch(guys);
+        bytes32 slate = etch(guys);
         vote(slate);
 
         return slate;
@@ -143,7 +166,7 @@ contract DSPrism is DSThing {
     @param which An identifier returned by "etch" or "vote."
     */
     function vote(bytes32 which) public {
-        var weight = deposits[msg.sender];
+        uint256 weight = deposits[msg.sender];
         subWeight(weight, slates[votes[msg.sender]]);
         addWeight(weight, slates[which]);
         votes[msg.sender] = which;
