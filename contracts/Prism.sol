@@ -17,25 +17,21 @@
 
 pragma solidity ^0.8.1;
 
-contract IERC20MintBurn {
-    function totalSupply() public view returns (uint supply);
-    function balanceOf( address who ) public view returns (uint value);
-    function allowance( address owner, address spender ) public view returns (uint _allowance);
+interface IERC20MintBurn {
+    function totalSupply() external view returns (uint supply);
+    function balanceOf( address who ) external view returns (uint value);
+    function allowance( address owner, address spender ) external view returns (uint _allowance);
 
-    function transfer( address to, uint value) public returns (bool ok);
-    function transferFrom( address from, address to, uint value) public returns (bool ok);
-    function approve( address spender, uint value ) public returns (bool ok);
+    function transfer( address to, uint value) external returns (bool ok);
+    function transferFrom( address from, address to, uint value) external returns (bool ok);
+    function approve( address spender, uint value ) external returns (bool ok);
 
-    function mint(uint amount) public;
-    function burn(uint amount) public;
+    function mint(uint amount) external;
+    function burn(uint amount) external;
 
     event Transfer( address indexed from, address indexed to, uint value);
     event Approval( address indexed owner, address indexed spender, uint value);
 }
-
-contract SafeAddSub {
-}
-
 
 contract Prism {
     IERC20MintBurn   public  GOV;
@@ -72,7 +68,7 @@ contract Prism {
     @param gov The address of the IERC20MintBurn instance to use for governance.
     @param iou The address of the IERC20MintBurn instance to use for IOUs.
     */
-    constructor(IERC20MintBurn gov, IERC20MintBurn iou, uint electionSize) public
+    constructor(IERC20MintBurn gov, IERC20MintBurn iou, uint electionSize)
     {
         electedLength = electionSize;
         elected.length = electionSize;
@@ -137,7 +133,7 @@ contract Prism {
     /**
     @notice Save an ordered addresses set and return a unique identifier for it.
     */
-    function etch(address[] guys) public returns (bytes32) {
+    function etch(address[] memory guys) public returns (bytes32) {
         requireByteOrderedSet(guys);
         bytes32 key = keccak256(guys);
         slates[key] = guys;
@@ -152,7 +148,7 @@ contract Prism {
 
     @param guys The ordered set of candidate addresses to vote for.
     */
-    function vote(address[] guys) public returns (bytes32) {
+    function vote(address[] memory guys) public returns (bytes32) {
         bytes32 slate = etch(guys);
         vote(slate);
 
@@ -209,9 +205,9 @@ contract Prism {
     @param wad Number of tokens (in the token's smallest denomination) to lock.
     */
     function lock(uint wad) public {
-        GOV.pull(msg.sender, wad);
+        GOV.transferFrom(msg.sender, address(this), wad);
         IOU.mint(wad);
-        IOU.push(msg.sender, wad);
+        IOU.transfer(msg.sender, wad);
         addWeight(wad, slates[votes[msg.sender]]);
         deposits[msg.sender] = add(deposits[msg.sender], wad);
     }
@@ -226,13 +222,13 @@ contract Prism {
     function free(uint wad) public {
         subWeight(wad, slates[votes[msg.sender]]);
         deposits[msg.sender] = sub(deposits[msg.sender], wad);
-        IOU.pull(msg.sender, wad);
+        IOU.transferFrom(msg.sender, address(this), wad);
         IOU.burn(wad);
-        GOV.push(msg.sender, wad);
+        GOV.transfer(msg.sender, wad);
     }
 
     // Throws unless the array of addresses is a ordered set.
-    function requireByteOrderedSet(address[] guys) pure internal {
+    function requireByteOrderedSet(address[] memory guys) pure internal {
         if( guys.length == 0 || guys.length == 1 ) {
             return;
         }
@@ -243,14 +239,14 @@ contract Prism {
     }
 
     // Remove weight from slate.
-    function subWeight(uint weight, address[] slate) internal {
+    function subWeight(uint weight, address[] memory slate) internal {
         for( uint i = 0; i < slate.length; i++) {
             approvals[slate[i]] = sub(approvals[slate[i]], weight);
         }
     }
 
     // Add weight to slate.
-    function addWeight(uint weight, address[] slate) internal {
+    function addWeight(uint weight, address[] memory slate) internal {
         for( uint i = 0; i < slate.length; i++) {
             approvals[slate[i]] = add(approvals[slate[i]], weight);
         }
