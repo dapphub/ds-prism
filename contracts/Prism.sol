@@ -15,67 +15,59 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.1;
+pragma solidity ^0.8.0;
 
-interface IERC20MintBurn {
-    function totalSupply() external view returns (uint supply);
-    function balanceOf( address who ) external view returns (uint value);
-    function allowance( address owner, address spender ) external view returns (uint _allowance);
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
 
-    function transfer( address to, uint value) external returns (bool ok);
-    function transferFrom( address from, address to, uint value) external returns (bool ok);
-    function approve( address spender, uint value ) external returns (bool ok);
+contract Prism is Context {
 
-    function mint(uint amount) external;
-    function burn(uint amount) external;
+    using SafeMath for uint;
 
-    event Transfer( address indexed from, address indexed to, uint value);
-    event Approval( address indexed owner, address indexed spender, uint value);
-}
-
-contract Prism {
-    IERC20MintBurn   public  GOV;
-    IERC20MintBurn   public  IOU;
+    // Initialization
+    ERC20   public  GOV;
+    ERC20   public  IOU;
 
     // top candidates in "lazy decreasing" order by vote
     address[]                   public  finalists;
+    uint                        public  finalizeSize;
     mapping (address => bool)   public  isFinalist;
 
     // elected set
     address[]                   public  elected;
+    uint                        public  electionSize;
     mapping (address=>bool)     public  isElected;
 
     uint256                     public  electedLength;
     bytes32                     public  electedID;
     uint256[]                   public  electedVotes;
+    uint                        public  electionVotesSize;
+    
 
-    mapping (address=>bytes32)  public  votes;
+    // Mapping
+    mapping (address=>bytes32)  public  votes;  
     mapping (address=>uint256)  public  approvals;
     mapping (address=>uint256)  public  deposits;
     mapping (bytes32=>address[])        slates;
 
-    function add(uint x, uint y) internal pure returns (uint z) {
-        require((z = x + y) >= x, "prism-math-add-overflow");
-    }
-    function sub(uint x, uint y) internal pure returns (uint z) {
-        require((z = x - y) <= x, "prism-math-sub-underflow");
-    }
-
     /**
-    @notice Create a Prism instance.
+        @notice Create a Prism instance.
 
-    @param electionSize The number of candidates to elect.
-    @param gov The address of the IERC20MintBurn instance to use for governance.
-    @param iou The address of the IERC20MintBurn instance to use for IOUs.
+        @param _electionSize The number of candidates to elect.
+        @param _gov The address of the IERC20 instance to use for governance.
+        @param _iou The address of the IERC20 instance to use for IOUs.
     */
-    constructor(IERC20MintBurn gov, IERC20MintBurn iou, uint electionSize)
+    constructor(ERC20 _gov, ERC20 _iou, uint _electionSize)
     {
-        electedLength = electionSize;
-        elected.length = electionSize;
-        electedVotes.length = electionSize;
-        finalists.length = electionSize;
-        GOV = gov;
-        IOU = iou;
+        electedLength = _electionSize;
+        electionSize = _electionSize;
+        electionVotesSize = _electionSize;
+        finalizeSize = _electionSize;
+
+        // Token Initialization
+        GOV = _gov;
+        IOU = _iou;
     }
 
     /**
@@ -104,9 +96,8 @@ contract Prism {
         finalists[j] = a;
         assert( approvals[a] < approvals[b]);
         assert( approvals[finalists[i+1]] < approvals[b] ||
-                finalists[i+1] == 0x0 );
+                finalists[i+1] == address(0x0) );
     }
-
 
     /**
     @notice Replace candidate at index `i` in the set of elected candidates with
@@ -135,7 +126,7 @@ contract Prism {
     */
     function etch(address[] memory guys) public returns (bytes32) {
         requireByteOrderedSet(guys);
-        bytes32 key = keccak256(guys);
+        bytes32 key;
         slates[key] = guys;
         return key;
     }
@@ -148,7 +139,7 @@ contract Prism {
 
     @param guys The ordered set of candidate addresses to vote for.
     */
-    function vote(address[] memory guys) public returns (bytes32) {
+    function vote(address[] memory guys) external returns (bytes32) {
         bytes32 slate = etch(guys);
         vote(slate);
 
@@ -161,11 +152,12 @@ contract Prism {
 
     @param which An identifier returned by "etch" or "vote."
     */
-    function vote(bytes32 which) public {
-        uint256 weight = deposits[msg.sender];
-        subWeight(weight, slates[votes[msg.sender]]);
+    function vote(bytes32 which) internal {
+        uint256 weight = deposits[_msgSender()];
+        subWeight(weight, slates[votes[_msgSender()]]);
         addWeight(weight, slates[which]);
-        votes[msg.sender] = which;
+
+        votes[_msgSender()] = which;
     }
 
     /**
@@ -190,26 +182,26 @@ contract Prism {
                 elected[i] = finalists[i];
                 isElected[elected[i]] = true;
             } else {
-                elected[i] = 0x0;
+                elected[i] = address(0x0);
                 electedVotes[i] = 0;
             }
         }
-        electedID = keccak256(elected);
+        electedID;
     }
 
-
     /**
-    @notice Lock up `wad` wei voting tokens and increase your vote weight
-    by the same amount.
+        @notice Lock up `wad` wei voting tokens and increase your vote weight
+        by the same amount.
 
-    @param wad Number of tokens (in the token's smallest denomination) to lock.
+        @param wad Number of tokens (in the token's smallest denomination) to lock.
     */
-    function lock(uint wad) public {
-        GOV.transferFrom(msg.sender, address(this), wad);
-        IOU.mint(wad);
-        IOU.transfer(msg.sender, wad);
-        addWeight(wad, slates[votes[msg.sender]]);
-        deposits[msg.sender] = add(deposits[msg.sender], wad);
+    function lock(uint wad) external {
+        GOV.transferFrom(_msgSender(), address(this), wad);
+
+        IOU.transfer(_msgSender(), wad);
+        addWeight(wad, slates[votes[_msgSender()]]);
+
+        deposits[_msgSender()] = deposits[_msgSender()].add(wad);
     }
 
 
@@ -220,11 +212,10 @@ contract Prism {
     @param wad Number of tokens (in the token's smallest denomination) to free.
     */
     function free(uint wad) public {
-        subWeight(wad, slates[votes[msg.sender]]);
-        deposits[msg.sender] = sub(deposits[msg.sender], wad);
-        IOU.transferFrom(msg.sender, address(this), wad);
-        IOU.burn(wad);
-        GOV.transfer(msg.sender, wad);
+        subWeight(wad, slates[votes[_msgSender()]]);
+        deposits[_msgSender()] = deposits[_msgSender()].sub(wad);
+        IOU.transferFrom(_msgSender(), address(this), wad);
+        GOV.transfer(_msgSender(), wad);
     }
 
     // Throws unless the array of addresses is a ordered set.
@@ -234,21 +225,21 @@ contract Prism {
         }
         for( uint i = 0; i < guys.length - 1; i++ ) {
             // strict inequality ensures both ordering and uniqueness
-            require(uint256(bytes32(guys[i])) < uint256(bytes32(guys[i+1])));
+            require(guys[i]  < guys[i+1]);
         }
     }
 
     // Remove weight from slate.
     function subWeight(uint weight, address[] memory slate) internal {
         for( uint i = 0; i < slate.length; i++) {
-            approvals[slate[i]] = sub(approvals[slate[i]], weight);
+            approvals[slate[i]] = approvals[slate[i]].sub(weight);
         }
     }
 
     // Add weight to slate.
     function addWeight(uint weight, address[] memory slate) internal {
         for( uint i = 0; i < slate.length; i++) {
-            approvals[slate[i]] = add(approvals[slate[i]], weight);
+            approvals[slate[i]] = approvals[slate[i]].add(weight);
         }
     }
 }
