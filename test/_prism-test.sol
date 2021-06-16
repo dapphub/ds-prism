@@ -162,20 +162,20 @@ contract DSPrismTest {
 
         bytes32 id = uSmall.doEtch(candidates);
         assert(id != 0x0);
-        //assertEq32(id, uMedium.doEtch(candidates));
+        // assertEq32(id, uMedium.doEtch(candidates));
     }
 
     function test_size_zero_slate() public {
         address[] memory candidates = new address[](0);
         bytes32 id = uSmall.doEtch(candidates);
-        //uSmall.doVote(id);
+        uSmall.doVote(id);
     }
 
     function test_size_one_slate() public {
         address[] memory candidates = new address[](1);
         candidates[0] = c1;
         bytes32 id = uSmall.doEtch(candidates);
-        //uSmall.doVote(id);
+        uSmall.doVote(id);
     }
 
     function testFail_etch_requires_ordered_sets() public {
@@ -188,13 +188,13 @@ contract DSPrismTest {
     }
 
     function test_lock_debits_user() public {
-        assert(gov.balanceOf(uLarge) == uLargeInitialBalance);
+        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
 
         uint lockedAmt = uLargeInitialBalance / 10;
         uLarge.doApprove(gov, prism, lockedAmt);
         uLarge.doLock(lockedAmt);
 
-        assert(gov.balanceOf(uLarge) == uLargeInitialBalance -
+        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance -
                lockedAmt);
     }
 
@@ -222,7 +222,7 @@ contract DSPrismTest {
     }
 
     function test_voting_and_reordering() public {
-        assert(gov.balanceOf(uLarge) == uLargeInitialBalance);
+        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
         
         initial_vote();
 
@@ -231,7 +231,7 @@ contract DSPrismTest {
         uLarge.doApprove(gov, prism, uLargeLockedAmt);
         uLarge.doLock(uLargeLockedAmt);
 
-        uint uLargeSlate = new address[](1);
+        address[] uLargeSlate = new address[](1);
         uLargeSlate[0] = c3;
         uLarge.doVote(uLargeSlate);
 
@@ -239,100 +239,100 @@ contract DSPrismTest {
         prism.swap(0, 2);
     }
 
-    // function testFail_snap_while_out_of_order() public {
-    //     initial_vote();
+    function testFail_snap_while_out_of_order() public {
+        initial_vote();
 
-    //     // Upset the order.
-    //     uSmall.doApprove(gov, prism, uSmallInitialBalance);
-    //     uSmall.doApprove(iou, prism, uSmallInitialBalance);
-    //     uSmall.doLock(uSmallInitialBalance);
+        // Upset the order.
+        uSmall.doApprove(gov, prism, uSmallInitialBalance);
+        uSmall.doApprove(iou, prism, uSmallInitialBalance);
+        uSmall.doLock(uSmallInitialBalance);
 
-    //     var uSmallSlate = new address[](1);
-    //     uSmallSlate[0] = c3;
-    //     uSmall.doVote(uSmallSlate);
+        address[] uSmallSlate = new address[](1);
+        uSmallSlate[0] = c3;
+        uSmall.doVote(uSmallSlate);
 
-    //     uMedium.doFree(uMediumInitialBalance);
+        uMedium.doFree(uMediumInitialBalance);
 
-    //     prism.snap();
-    // }
+        prism.snap();
+    }
 
-    // function test_swap_half_votes() public {
-    //     initial_vote();
+    function test_swap_half_votes() public {
+        initial_vote();
 
-    //     // Upset the order.
-    //     uSmall.doApprove(gov, prism, uSmallInitialBalance);
-    //     uSmall.doLock(uSmallInitialBalance);
+        // Upset the order.
+        uSmall.doApprove(gov, prism, uSmallInitialBalance);
+        uSmall.doLock(uSmallInitialBalance);
 
-    //     var uSmallSlate = new address[](1);
-    //     uSmallSlate[0] = c3;
-    //     uSmall.doVote(uSmallSlate);
+        address[] uSmallSlate = new address[](1);
+        uSmallSlate[0] = c3;
+        uSmall.doVote(uSmallSlate);
 
-    //     uMedium.doFree(uMediumInitialBalance);
+        uMedium.doFree(uMediumInitialBalance);
 
-    //     prism.swap(0, 2);
-    //     prism.snap();
+        prism.swap(0, 2);
+        prism.snap();
 
-    //     assert(!prism.isElected(c1));
-    //     assert(!prism.isElected(c2));
-    //     assert(prism.isElected(c3));
-    // }
+        assert(!prism.isElected(c1));
+        assert(!prism.isElected(c2));
+        assert(prism.isElected(c3));
+    }
 
-    // function testFail_drop_past_end_of_elected() public {
-    //     assert(gov.balanceOf(uLarge) == uLargeInitialBalance);
+    function testFail_drop_past_end_of_elected() public {
+        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
 
-    //     initial_vote();
+        initial_vote();
 
-    //     // Upset the order.
-    //     uLarge.doApprove(gov, prism, uLargeInitialBalance);
-    //     uLarge.doLock(uLargeInitialBalance);
+        // Upset the order.
+        uLarge.doApprove(gov, prism, uLargeInitialBalance);
+        uLarge.doLock(uLargeInitialBalance);
 
-    //     var uLargeSlate = new address[](1);
-    //     uLargeSlate[0] = c4;
-    //     uLarge.doVote(uLargeSlate);
+        address[] uLargeSlate = new address[](1);
+        uLargeSlate[0] = c4;
+        uLarge.doVote(uLargeSlate);
 
-    //     // Update the elected set to reflect the new order.
-    //     prism.drop(3, c4);
-    // }
+        // Update the elected set to reflect the new order.
+        prism.drop(3, c4);
+    }
 
-    // function testFail_voting_and_reordering_without_weight() public {
-    //     assert(gov.balanceOf(uLarge) == uLargeInitialBalance);
+    function testFail_voting_and_reordering_without_weight() public {
+        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
 
-    //     initial_vote();
+        initial_vote();
 
-    //     // Vote without weight.
-    //     var uLargeSlate = new address[](1);
-    //     uLargeSlate[0] = c3;
-    //     uLarge.doVote(uLargeSlate);
+        // Vote without weight.
+        address[] uLargeSlate = new address[](1);
+        uLargeSlate[0] = c3;
+        uLarge.doVote(uLargeSlate);
 
-    //     // Attempt to update the elected set.
-    //     prism.swap(0, 2);
-    // }
+        // Attempt to update the elected set.
+        prism.swap(0, 2);
+    }
 
-    // function test_voting_by_slate_id() public {
-    //     assert(gov.balanceOf(uLarge) == uLargeInitialBalance);
+    function test_voting_by_slate_id() public {
+        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
 
-    //     var slateID = initial_vote();
+        address[] slateID = initial_vote();
 
-    //     // Upset the order.
-    //     uLarge.doApprove(gov, prism, uLargeInitialBalance);
-    //     uLarge.doLock(uLargeInitialBalance);
+        // Upset the order.
+        uLarge.doApprove(gov, prism, uLargeInitialBalance);
+        uLarge.doLock(uLargeInitialBalance);
 
-    //     var uLargeSlate = new address[](1);
-    //     uLargeSlate[0] = c4;
-    //     uLarge.doVote(uLargeSlate);
+        address[] uLargeSlate = new address[](1);
+        uLargeSlate[0] = c4;
+        uLarge.doVote(uLargeSlate);
 
-    //     // Update the elected set to reflect the new order.
-    //     prism.drop(2, c4);
-    //     prism.swap(0, 2);
+        // Update the elected set to reflect the new order.
+        prism.drop(2, c4);
+        prism.swap(0, 2);
 
-    //     // Now restore the old order using a slate ID.
-    //     uSmall.doApprove(gov, prism, uSmallInitialBalance);
-    //     uSmall.doLock(uSmallInitialBalance);
-    //     uSmall.doVote(slateID);
+        // Now restore the old order using a slate ID.
+        uSmall.doApprove(gov, prism, uSmallInitialBalance);
+        uSmall.doLock(uSmallInitialBalance);
+        uSmall.doVote(slateID);
 
-    //     // Update the elected set to reflect the restored order.
-    //     prism.drop(0, c3);
-    // }
+        // Update the elected set to reflect the restored order.
+        prism.drop(0, c3);
+    }
 
     function initial_vote() internal returns (bytes32 slateID) {
         uint uMediumLockedAmt = uMediumInitialBalance;
@@ -340,7 +340,7 @@ contract DSPrismTest {
         uMedium.doApprove(iou, prism, uMediumLockedAmt);
         uMedium.doLock(uMediumLockedAmt);
 
-        uint uMediumSlate = new address[](3);
+        address[] uMediumSlate = new address[](3);
         uMediumSlate[0] = c1;
         uMediumSlate[1] = c2;
         uMediumSlate[2] = c3;
