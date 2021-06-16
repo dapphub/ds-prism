@@ -26,8 +26,8 @@ contract Prism is Context {
     using SafeMath for uint;
 
     // Initialization
-    ERC20   public  GOV;
-    ERC20   public  IOU;
+    ERC20   public  gov;
+    ERC20   public  iou;
 
     // top candidates in "lazy decreasing" order by vote
     address[]                   public  finalists;
@@ -43,7 +43,6 @@ contract Prism is Context {
     bytes32                     public  electedID;
     uint256[]                   public  electedVotes;
     uint                        public  electionVotesSize;
-    
 
     // Mapping
     mapping (address=>bytes32)  public  votes;  
@@ -66,27 +65,27 @@ contract Prism is Context {
         finalizeSize = _electionSize;
 
         // Token Initialization
-        GOV = _gov;
-        IOU = _iou;
+        gov = _gov;
+        gov = _iou;
     }
 
     /**
-    @notice Swap candidates `i` and `j` in the vote-ordered list. This
-    transaction will fail if `i` is greater than `j`, if candidate `i` has a
-    higher score than candidate `j`, if the candidate one slot below the slot
-    candidate `j` is moving to has more approvals than candidate `j`, or if
-    candidate `j` has fewer than half the approvals of the most popular
-    candidate.  This transaction will always succeed if candidate `j` has at
-    least half the approvals of the most popular candidate and if candidate `i`
-    either also has less than half the approvals of the most popular candidate
-    or is `0x0`.
+        @notice Swap candidates `i` and `j` in the vote-ordered list. This
+        transaction will fail if `i` is greater than `j`, if candidate `i` has a
+        higher score than candidate `j`, if the candidate one slot below the slot
+        candidate `j` is moving to has more approvals than candidate `j`, or if
+        candidate `j` has fewer than half the approvals of the most popular
+        candidate.  This transaction will always succeed if candidate `j` has at
+        least half the approvals of the most popular candidate and if candidate `i`
+        either also has less than half the approvals of the most popular candidate
+        or is `0x0`.
 
-    @dev This function is meant to be called repeatedly until the list of
-    candidates, `elected`, has been ordered in descending order by weighted
-    approvals. The winning candidates will end up at the front of the list.
+        @dev This function is meant to be called repeatedly until the list of
+        candidates, `elected`, has been ordered in descending order by weighted
+        approvals. The winning candidates will end up at the front of the list.
 
-    @param i The index of the candidate in the `elected` list to move down.
-    @param j The index of the candidate in the `elected` list to move up.
+        @param i The index of the candidate in the `elected` list to move down.
+        @param j The index of the candidate in the `elected` list to move up.
     */
     function swap(uint i, uint j) public {
         require(i < j && j < finalists.length);
@@ -100,13 +99,13 @@ contract Prism is Context {
     }
 
     /**
-    @notice Replace candidate at index `i` in the set of elected candidates with
-    the candidate at address `b`. This transaction will fail if candidate `i`
-    has more approvals than the candidate at the given address, or if the
-    candidate is already a finalist.
+        @notice Replace candidate at index `i` in the set of elected candidates with
+        the candidate at address `b`. This transaction will fail if candidate `i`
+        has more approvals than the candidate at the given address, or if the
+        candidate is already a finalist.
 
-    @param i The index of the candidate to replace.
-    @param b The address of the candidate to insert.
+        @param i The index of the candidate to replace.
+        @param b The address of the candidate to insert.
     */
     function drop(uint i, address b) public {
         require(i < finalists.length);
@@ -120,9 +119,8 @@ contract Prism is Context {
         assert(approvals[a] < approvals[b]);
     }
 
-
     /**
-    @notice Save an ordered addresses set and return a unique identifier for it.
+        @notice Save an ordered addresses set and return a unique identifier for it.
     */
     function etch(address[] memory guys) public returns (bytes32) {
         requireByteOrderedSet(guys);
@@ -131,13 +129,11 @@ contract Prism is Context {
         return key;
     }
 
-
     /**
-    @notice Vote for candidates `guys`. This transaction will fail if the set of
-    candidates is not ordered according the their numerical values or if it
-    contains duplicates. Returns a unique ID for the set of candidates chosen.
-
-    @param guys The ordered set of candidate addresses to vote for.
+        @notice Vote for candidates `guys`. This transaction will fail if the set of
+        candidates is not ordered according the their numerical values or if it
+        contains duplicates. Returns a unique ID for the set of candidates chosen.
+        @param guys The ordered set of candidate addresses to vote for.
     */
     function vote(address[] memory guys) external returns (bytes32) {
         bytes32 slate = etch(guys);
@@ -146,11 +142,9 @@ contract Prism is Context {
         return slate;
     }
 
-
     /**
-    @notice Vote for the set of candidates with ID `which`.
-
-    @param which An identifier returned by "etch" or "vote."
+        @notice Vote for the set of candidates with ID `which`.
+        @param which An identifier returned by "etch" or "vote."
     */
     function vote(bytes32 which) internal {
         uint256 weight = deposits[_msgSender()];
@@ -161,8 +155,8 @@ contract Prism is Context {
     }
 
     /**
-    @notice Elect the current set of finalists. The current set of finalists
-    must be sorted or the transaction will fail.
+        @notice Elect the current set of finalists. The current set of finalists
+        must be sorted or the transaction will fail.
     */
     function snap() public {
         // Either finalists[0] has the most approvals, or there will be someone
@@ -196,26 +190,24 @@ contract Prism is Context {
         @param wad Number of tokens (in the token's smallest denomination) to lock.
     */
     function lock(uint wad) external {
-        GOV.transferFrom(_msgSender(), address(this), wad);
+        gov.transferFrom(_msgSender(), address(this), wad);
 
-        IOU.transfer(_msgSender(), wad);
+        iou.transfer(_msgSender(), wad);
         addWeight(wad, slates[votes[_msgSender()]]);
 
         deposits[_msgSender()] = deposits[_msgSender()].add(wad);
     }
 
-
     /**
-    @notice Retrieve `wad` wei of your locked voting tokens and decrease your
-    vote weight by the same amount.
-
-    @param wad Number of tokens (in the token's smallest denomination) to free.
+        @notice Retrieve `wad` wei of your locked voting tokens and decrease your
+        vote weight by the same amount.
+        @param wad Number of tokens (in the token's smallest denomination) to free.
     */
     function free(uint wad) public {
         subWeight(wad, slates[votes[_msgSender()]]);
         deposits[_msgSender()] = deposits[_msgSender()].sub(wad);
-        IOU.transferFrom(_msgSender(), address(this), wad);
-        GOV.transfer(_msgSender(), wad);
+        iou.transferFrom(_msgSender(), address(this), wad);
+        gov.transfer(_msgSender(), wad);
     }
 
     // Throws unless the array of addresses is a ordered set.
