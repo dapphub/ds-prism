@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
@@ -26,8 +26,8 @@ contract Prism is Context {
     using SafeMath for uint;
 
     // Initialization
-    ERC20   public  gov;
-    ERC20   public  iou;
+    IERC20   public  gov;
+    IERC20   public  iou;
 
     // top candidates in "lazy decreasing" order by vote
     address[]                   public  finalists;
@@ -57,7 +57,7 @@ contract Prism is Context {
         @param _gov The address of the IERC20 instance to use for governance.
         @param _iou The address of the IERC20 instance to use for IOUs.
     */
-    constructor(ERC20 _gov, ERC20 _iou, uint _electionSize)
+    constructor(IERC20 _gov, IERC20 _iou, uint _electionSize)
     {
         electedLength = _electionSize;
         electionSize = _electionSize;

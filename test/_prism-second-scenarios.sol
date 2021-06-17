@@ -16,97 +16,12 @@
 pragma solidity ^0.8.0;
 
 //import "ds-test/test.sol";
-import "../contracts/gov.sol";
-import "../contracts/iou.sol";
+import "../contracts/ERC20Token.sol";
+// import "../contracts/iou.sol";
 import "../contracts/Prism.sol";
+import "../contracts/PrismUser.sol";
 
-
-contract PrismUser {
-    GOV gov;
-    Prism prism;
-    address public userwallet;
-
-    constructor(GOV GOV_, Prism prism_) public {
-        gov = GOV_;
-        prism = prism_;
-        userwallet = msg.sender;
-    }
-
-    function doTransferFrom(address from, address to, uint amount)
-        public
-        returns (bool)
-    {
-        return gov.transferFrom(from, to, amount);
-    }
-
-    function doTransfer(address to, uint amount)
-        public
-        returns (bool)
-    {
-        return gov.transfer(to, amount);
-    }
-
-    function doApprove(GOV token, address recipient, uint amount)
-        public
-        returns (bool)
-    {
-        return token.approve(recipient, amount);
-    }
-
-    function getWalletAddress()
-        public
-        view
-        returns (address)
-    {
-        return userwallet;
-    }
-
-    function doAllowance(address owner, address spender)
-        public
-        view
-        returns (uint)
-    {
-        return gov.allowance(owner, spender);
-    }
-
-    function doBalanceOf(address who)
-        public
-        view
-        returns (uint)
-    {
-        return gov.balanceOf(who);
-    }
-
-    function doSwap(uint i, uint j) public {
-        prism.swap(i, j);
-    }
-
-    function doDrop(uint i, address b) public {
-        prism.drop(i, b);
-    }
-
-    function doEtch(address[] memory guys) public returns (bytes32) {
-        return prism.etch(guys);
-    }
-
-    function doVote(address[] memory guys) public returns (bytes32) {
-        return prism.vote(guys);
-    }
-
-    // function doVote(address[] memory id) public {
-    //     prism.vote(id);
-    // }
-
-    function doLock(uint amt) public {
-        prism.lock(amt);
-    }
-
-    function doFree(uint amt) public {
-        prism.free(amt);
-    }
-}
-
-contract DSPrismTest {
+contract DSPrismTestOne {
     uint constant electionSize = 3;
 
     // c prefix: candidate
@@ -125,8 +40,8 @@ contract DSPrismTest {
     uint256 constant uSmallInitialBalance = initialBalance / 5;
 
     Prism prism;
-    GOV gov;
-    IOU iou;
+    ERC20Token gov;
+    ERC20Token iou;
 
     // u prefix: user
     PrismUser uLarge;
@@ -134,13 +49,12 @@ contract DSPrismTest {
     PrismUser uSmall;
 
     function setUp() public {
-        gov = new GOV();
-        //gov.mint(initialBalance);
+        gov = new ERC20Token("GOV","GOV");
+        gov.mint(msg.sender, initialBalance);
 
-        iou = new IOU();
+        iou = new ERC20Token("IOU", "IOU");
         prism = new Prism(gov, iou, electionSize);
-        //iou.setOwner(prism);
-
+       
         uLarge = new PrismUser(gov, prism);
         uMedium = new PrismUser(gov, prism);
         uSmall = new PrismUser(gov, prism);
@@ -154,75 +68,8 @@ contract DSPrismTest {
         gov.transfer(uSmall.getWalletAddress(), uSmallInitialBalance);
     }
 
-    function test_etch_returns_same_id_for_same_sets() public {
-        address[] memory candidates = new address[](3);
-        candidates[0] = c1;
-        candidates[1] = c2;
-        candidates[2] = c3;
-
-        bytes32 id = uSmall.doEtch(candidates);
-        assert(id != 0x0);
-        // assertEq32(id, uMedium.doEtch(candidates));
-    }
-
-    function test_size_zero_slate() public {
-        address[] memory candidates = new address[](0);
-        bytes32 id = uSmall.doEtch(candidates);
-        uSmall.doVote(id);
-    }
-
-    function test_size_one_slate() public {
-        address[] memory candidates = new address[](1);
-        candidates[0] = c1;
-        bytes32 id = uSmall.doEtch(candidates);
-        uSmall.doVote(id);
-    }
-
-    function testFail_etch_requires_ordered_sets() public {
-        address[] memory candidates = new address[](3);
-        candidates[0] = c2;
-        candidates[1] = c1;
-        candidates[2] = c3;
-
-        uSmall.doEtch(candidates);
-    }
-
-    function test_lock_debits_user() public {
-        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
-
-        uint lockedAmt = uLargeInitialBalance / 10;
-        uLarge.doApprove(gov, prism, lockedAmt);
-        uLarge.doLock(lockedAmt);
-
-        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance -
-               lockedAmt);
-    }
-
-    function test_changing_weight_after_voting() public {
-        uint uLargeLockedAmt = uLargeInitialBalance / 2;
-        uLarge.doApprove(gov, prism, uLargeLockedAmt);
-        uLarge.doApprove(iou, prism, uLargeLockedAmt);
-        uLarge.doLock(uLargeLockedAmt);
-
-        uint uLargeSlate = new address[](1);
-        uLargeSlate[0] = c1;
-        //uLarge.doVote(uLargeSlate);
-
-        assert(prism.approvals(c1) == uLargeLockedAmt);
-
-        // Changing weight should update the weight of our candidate.
-        uLarge.doFree(uLargeLockedAmt);
-        assert(prism.votes(c1) == 0);
-
-        uLargeLockedAmt = uLargeInitialBalance / 4;
-        uLarge.doApprove(gov, prism, uLargeLockedAmt);
-        uLarge.doLock(uLargeLockedAmt);
-
-        assert(prism.approvals(c1) == uLargeLockedAmt);
-    }
-
     function test_voting_and_reordering() public {
-        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
+        assert(gov.balanceOf(uLarge.getWalletAddress()) == gov.balanceOf(uLarge.getWalletAddress()));
         
         initial_vote();
 
@@ -231,7 +78,7 @@ contract DSPrismTest {
         uLarge.doApprove(gov, prism, uLargeLockedAmt);
         uLarge.doLock(uLargeLockedAmt);
 
-        address[] uLargeSlate = new address[](1);
+        address[] memory uLargeSlate = new address[](1);
         uLargeSlate[0] = c3;
         uLarge.doVote(uLargeSlate);
 
@@ -247,7 +94,7 @@ contract DSPrismTest {
         uSmall.doApprove(iou, prism, uSmallInitialBalance);
         uSmall.doLock(uSmallInitialBalance);
 
-        address[] uSmallSlate = new address[](1);
+        address[] memory uSmallSlate = new address[](1);
         uSmallSlate[0] = c3;
         uSmall.doVote(uSmallSlate);
 
@@ -263,7 +110,7 @@ contract DSPrismTest {
         uSmall.doApprove(gov, prism, uSmallInitialBalance);
         uSmall.doLock(uSmallInitialBalance);
 
-        address[] uSmallSlate = new address[](1);
+        address[] memory uSmallSlate = new address[](1);
         uSmallSlate[0] = c3;
         uSmall.doVote(uSmallSlate);
 
@@ -278,7 +125,7 @@ contract DSPrismTest {
     }
 
     function testFail_drop_past_end_of_elected() public {
-        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
+        assert(gov.balanceOf(uLarge.getWalletAddress()) == uLargeInitialBalance);
 
         initial_vote();
 
@@ -286,7 +133,7 @@ contract DSPrismTest {
         uLarge.doApprove(gov, prism, uLargeInitialBalance);
         uLarge.doLock(uLargeInitialBalance);
 
-        address[] uLargeSlate = new address[](1);
+        address[] memory uLargeSlate = new address[](1);
         uLargeSlate[0] = c4;
         uLarge.doVote(uLargeSlate);
 
@@ -295,12 +142,12 @@ contract DSPrismTest {
     }
 
     function testFail_voting_and_reordering_without_weight() public {
-        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
+        assert(gov.balanceOf(uLarge.getWalletAddress()) == uLargeInitialBalance);
 
         initial_vote();
 
         // Vote without weight.
-        address[] uLargeSlate = new address[](1);
+        address[] memory uLargeSlate = new address[](1);
         uLargeSlate[0] = c3;
         uLarge.doVote(uLargeSlate);
 
@@ -309,15 +156,15 @@ contract DSPrismTest {
     }
 
     function test_voting_by_slate_id() public {
-        assert(gov.balanceOf(uLarge.address) == uLargeInitialBalance);
+        assert(gov.balanceOf(uLarge.getWalletAddress()) == uLargeInitialBalance);
 
-        address[] slateID = initial_vote();
+        bytes32 slateID = initial_vote();
 
         // Upset the order.
         uLarge.doApprove(gov, prism, uLargeInitialBalance);
         uLarge.doLock(uLargeInitialBalance);
 
-        address[] uLargeSlate = new address[](1);
+        address[] memory uLargeSlate = new address[](1);
         uLargeSlate[0] = c4;
         uLarge.doVote(uLargeSlate);
 
@@ -328,7 +175,7 @@ contract DSPrismTest {
         // Now restore the old order using a slate ID.
         uSmall.doApprove(gov, prism, uSmallInitialBalance);
         uSmall.doLock(uSmallInitialBalance);
-        uSmall.doVote(slateID);
+        uSmall.doVote(uLargeSlate);
 
         // Update the elected set to reflect the restored order.
         prism.drop(0, c3);
@@ -340,7 +187,7 @@ contract DSPrismTest {
         uMedium.doApprove(iou, prism, uMediumLockedAmt);
         uMedium.doLock(uMediumLockedAmt);
 
-        address[] uMediumSlate = new address[](3);
+        address[] memory uMediumSlate = new address[](3);
         uMediumSlate[0] = c1;
         uMediumSlate[1] = c2;
         uMediumSlate[2] = c3;
