@@ -66,7 +66,7 @@ contract Prism is Context {
 
         // Token Initialization
         gov = _gov;
-        gov = _iou;
+        iou = _iou;
     }
 
     /**
