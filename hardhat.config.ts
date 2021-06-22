@@ -5,8 +5,12 @@ import "@nomiclabs/hardhat-waffle"
 
 const config: HardhatUserConfig = {
   networks: {
+    //defaultNetwork: 'localhost',
     hardhat: {
     },
+    localhost: {
+      url: 'http://localhost:8545',
+    }  
   },
   solidity: {
     compilers: [

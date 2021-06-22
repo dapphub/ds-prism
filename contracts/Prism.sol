@@ -16,10 +16,13 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.8.0;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
+
+import "hardhat/console.sol";
 
 contract Prism is Context {
 
@@ -123,9 +126,12 @@ contract Prism is Context {
         @notice Save an ordered addresses set and return a unique identifier for it.
     */
     function etch(address[] memory guys) public returns (bytes32) {
-        requireByteOrderedSet(guys);
-        bytes32 key;
+        bool _isValid = requireByteOrderedSet(guys);
+        require(_isValid == true,"error : candidate list must be unique");
+
+        bytes32 key = keccak256(abi.encodePacked(guys));
         slates[key] = guys;
+        
         return key;
     }
 
@@ -138,7 +144,6 @@ contract Prism is Context {
     function vote(address[] memory guys) external returns (bytes32) {
         bytes32 slate = etch(guys);
         vote(slate);
-
         return slate;
     }
 
@@ -211,14 +216,22 @@ contract Prism is Context {
     }
 
     // Throws unless the array of addresses is a ordered set.
-    function requireByteOrderedSet(address[] memory guys) pure internal {
+    function requireByteOrderedSet(address[] memory guys) internal pure returns(bool) {
+        //address[] memory candidate = guys;
         if( guys.length == 0 || guys.length == 1 ) {
-            return;
+            return false;
         }
-        for( uint i = 0; i < guys.length - 1; i++ ) {
+
+        for( uint i = 0; i < guys.length; i++) {
+            //console.log(" ==== ", guys[i] , " ==== ", guys[i] );
             // strict inequality ensures both ordering and uniqueness
-            require(guys[i]  < guys[i+1]);
+            for( uint j = i+1; j < guys.length; j++) {
+                if(guys[i] == guys[j]) return false;
+            }
+           
         }
+
+        return true;
     }
 
     // Remove weight from slate.
