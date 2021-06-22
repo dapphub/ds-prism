@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/utils/Context.sol";
 
 contract ERC20Token is Context, IERC20, Ownable {
         
-        string private _name = "PBLOToken";
-        string private _symbol = "PBLO";
-        uint8 private _decimals = 18;
+        string private _name;
+        string private _symbol;
+        uint8 private _decimals;
 
         mapping (address => uint256) private _balances;
 
