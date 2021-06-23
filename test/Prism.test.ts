@@ -181,6 +181,8 @@ describe('Prism', () => {
       const candidate_1 = accounts[1];
       const candidate_2 = accounts[2];
       const candidate_3 = accounts[3];
+      
+      
       const candidate_4 = accounts[4];
       const candidate_5 = accounts[5];
       const candidate_6 = accounts[6];
@@ -215,34 +217,6 @@ describe('Prism', () => {
     
       //   
       expect(await Prism.electionInc()).to.equal("1")
-
-
-      // var candidates1:string[] = [candidate_5.address.toString(), candidate_6.address.toString(), candidate_3.address.toString()]
-      // let electionKey1 = await Prism.etch(candidates1);
-      // console.log("KEY 1: ", electionKey1.value.toString('hex') );
-
-      //assert(id != 0x0);      //
-
-      // DSPrism prism;
-      // DSToken GOV;
-      // DSToken IOU;
-
-      // // u prefix: user
-      // PrismUser uLarge;
-      // PrismUser uMedium;
-      // PrismUser uSmall;
-
-      // // Prism properties
-      // expect(await prism.gov()).to.equal(gov.address)
-      // expect(await prism.iou()).to.equal(iou.address)
-
-      // expect(await prism.electedLength()).to.equal(electionSize)
-      // expect(await prism.electionSize()).to.equal(electionSize)
-      // expect(await prism.electionVotesSize()).to.equal(electionSize)
-      // expect(await prism.finalizeSize()).to.equal(electionSize)
-
-      //
-      
       
       // CONTRACT INITIALIZATION
       // <!----- USER 1 ---->
