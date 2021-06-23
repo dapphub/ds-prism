@@ -16,7 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.8.0;
-pragma abicoder v2;
+//pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -46,12 +46,13 @@ contract Prism is Context {
     bytes32                     public  electedID;
     uint256[]                   public  electedVotes;
     uint                        public  electionVotesSize;
+    uint256                     public  electionInc = 0;
 
     // Mapping
-    mapping (address=>bytes32)  public  votes;  
+    mapping (address=>uint256)  public  votes;      // Provided vote to which election
     mapping (address=>uint256)  public  approvals;
     mapping (address=>uint256)  public  deposits;
-    mapping (bytes32=>address[])        slates;
+    mapping (uint256=>address[]) public  slates;
 
     /**
         @notice Create a Prism instance.
@@ -125,37 +126,37 @@ contract Prism is Context {
     /**
         @notice Save an ordered addresses set and return a unique identifier for it.
     */
-    function etch(address[] memory guys) public returns (bytes32) {
+    function etch(address[] memory guys) external virtual returns (uint256) {
         bool _isValid = requireByteOrderedSet(guys);
         require(_isValid == true,"error : candidate list must be unique");
+        uint256 _currentElectionId = electionInc;
+        slates[_currentElectionId] = guys;
 
-        bytes32 key = keccak256(abi.encodePacked(guys));
-        slates[key] = guys;
-        
-        return key;
+        // Increment election
+        electionInc++;
+
+        return _currentElectionId;
     }
 
     /**
         @notice Vote for candidates `guys`. This transaction will fail if the set of
         candidates is not ordered according the their numerical values or if it
         contains duplicates. Returns a unique ID for the set of candidates chosen.
-        @param guys The ordered set of candidate addresses to vote for.
+        @param _electionId The ordered set of candidate addresses to vote for.
     */
-    function vote(address[] memory guys) external returns (bytes32) {
-        bytes32 slate = etch(guys);
-        vote(slate);
-        return slate;
+    function vote(uint256 _electionId) external returns (uint256) {
+        _vote(_electionId);
+        return _electionId;
     }
 
     /**
         @notice Vote for the set of candidates with ID `which`.
         @param which An identifier returned by "etch" or "vote."
     */
-    function vote(bytes32 which) internal {
+    function _vote(uint256 which) internal {
         uint256 weight = deposits[_msgSender()];
         subWeight(weight, slates[votes[_msgSender()]]);
         addWeight(weight, slates[which]);
-
         votes[_msgSender()] = which;
     }
 
@@ -194,10 +195,11 @@ contract Prism is Context {
 
         @param wad Number of tokens (in the token's smallest denomination) to lock.
     */
-    function lock(uint wad) external {
-        gov.transferFrom(_msgSender(), address(this), wad);
+    function lock(uint256 wad) external {
+        IERC20(gov).transferFrom(_msgSender(), address(this), wad);
 
-        iou.transfer(_msgSender(), wad);
+        IERC20(iou).transfer(_msgSender(), wad);
+
         addWeight(wad, slates[votes[_msgSender()]]);
 
         deposits[_msgSender()] = deposits[_msgSender()].add(wad);
